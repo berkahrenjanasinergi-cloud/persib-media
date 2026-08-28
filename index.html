@@ -244,13 +244,17 @@ const logEvent=(k,m)=>store.add("events",{kind:k,meta:m||{}});
 const FEEDS=[
  {name:"Persib.co.id",tier:1,url:"https://persib.co.id/feed",rel:97},
  {name:"Simamaung",tier:2,url:"https://simamaung.com/feed",rel:92},
- {name:"ANTARA",tier:2,url:"https://www.antaranews.com/rss/terkini",rel:93},
- {name:"Bola.com",tier:2,url:"https://www.bola.com/feed",rel:86},
- {name:"Detik Sport",tier:2,url:"https://feed.detik.com/index.php/sport",rel:88},
- {name:"Tribun Jabar",tier:2,url:"https://jabar.tribunnews.com/rss",rel:85}];
+ {name:"BBC Football",tier:2,url:"https://feeds.bbci.co.uk/sport/football/rss.xml",rel:95},
+ {name:"Guardian Football",tier:2,url:"https://www.theguardian.com/football/rss",rel:93},
+ {name:"Bola.com",tier:2,url:"https://www.bola.com/feed",rel:86,f:/persib|bobotoh|liga 1|timnas|sepak ?bola|maung|piala/i},
+ {name:"Detik Sport",tier:2,url:"https://feed.detik.com/index.php/sport",rel:88,f:/persib|bobotoh|liga|timnas|sepak ?bola|piala|mundial|premier|champions|eropa/i},
+ {name:"Tribun Jabar",tier:2,url:"https://jabar.tribunnews.com/rss",rel:85,f:/bandung|jabar|persib|bobotoh|cimahi|sumedang|purwakarta/i},
+ {name:"Pikiran Rakyat",tier:2,url:"https://www.pikiran-rakyat.com/feed",rel:84,f:/bandung|jabar|persib|bobotoh/i},
+ {name:"ANTARA",tier:2,url:"https://www.antaranews.com/rss/terkini",rel:90,f:/bandung|jabar|persib|bobotoh|timnas|sepak ?bola/i}
+];
 const providers={
  async news(){try{const r=await fetch("/api/news");if(r.ok){const j=await r.json();if(j.items&&j.items.length)return j.items}}catch(e){}
-  const out=[];await Promise.all(FEEDS.map(async f=>{try{const r=await fetch("https://api.rss2json.com/v1/api?rss_url="+encodeURIComponent(f.url));const j=await r.json();(j.items||[]).slice(0,12).forEach(it=>out.push({src:f.name,tier:f.tier,t:it.title,link:it.link,date:it.pubDate}))}catch(e){try{const r=await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(f.url));const x=await r.text();new DOMParser().parseFromString(x,"text/xml").querySelectorAll("item").forEach((it,i)=>{if(i<12)out.push({src:f.name,tier:f.tier,t:it.querySelector("title")?.textContent||"",link:it.querySelector("link")?.textContent||"",date:it.querySelector("pubDate")?.textContent||""})})}catch(e2){}}}));
+  const out=[];await Promise.all(FEEDS.map(async f=>{try{const r=await fetch("https://api.rss2json.com/v1/api?rss_url="+encodeURIComponent(f.url));const j=await r.json();(j.items||[]).slice(0,12).forEach(it=>{if(f.f&&!f.f.test(it.title))return;out.push({src:f.name,tier:f.tier,t:it.title,link:it.link,date:it.pubDate})})}catch(e){try{const r=await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(f.url));const x=await r.text();new DOMParser().parseFromString(x,"text/xml").querySelectorAll("item").forEach((it,i)=>{if(i<12){const t=it.querySelector("title")?.textContent||"";if(f.f&&!f.f.test(t))return;out.push({src:f.name,tier:f.tier,t,link:it.querySelector("link")?.textContent||"",date:it.querySelector("pubDate")?.textContent||""})}})}catch(e2){}}}));
   return out.filter(i=>i.t)},
   async llm(p){
   try {
