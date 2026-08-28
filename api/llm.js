@@ -2,7 +2,13 @@ export default async function handler(req,res){
  const key=process.env.GEMINI_KEY;
  const p=(req.body&&req.body.prompt)||"";
  if(!key) return res.status(200).json({error:"GEMINI_KEY belum ada di env Vercel"});
- const MODELS=["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.0-flash","gemini-2.0-flash-lite"];
+ let MODELS=["gemini-3.5-flash-lite","gemini-3.5-flash","gemini-3-flash","gemini-2.5-flash","gemini-2.0-flash"];
+ try{
+  const lr=await fetch("https://generativelanguage.googleapis.com/v1beta/models?key="+key+"&pageSize=200");
+  const lj=await lr.json();
+  const avail=(lj.models||[]).map(x=>(x.name||"").replace("models/","")).filter(n=>/flash/i.test(n)&&!/image|tts|embed|live/i.test(n));
+  if(avail.length) MODELS=[...avail,...MODELS];
+ }catch(e){}
  let last="";
  for(const m of MODELS){
   try{
