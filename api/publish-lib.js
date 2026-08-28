@@ -32,3 +32,4 @@ export async function publishTo({platform,message,imageUrl,videoUrl},env){
   return{ok:false,error:"platform tidak didukung"};
  }catch(e){return{ok:false,error:String(e.message||e)}}
 }
+export default async function handler(req,res){res.status(404).json({ok:false})}
