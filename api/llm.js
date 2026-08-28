@@ -1,13 +1,21 @@
 export default async function handler(req,res){
- const key=process.env.GEMINI_KEY;const p=(req.body&&req.body.prompt)||"";
- if(!key)return res.status(200).json({text:null});
- for(const m of ["gemini-2.5-flash","gemini-2.0-flash","gemini-2.0-flash-lite"]){
-  try{
-   const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:p}]}]})});
-   const j=await r.json();
-   const t=j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts&&j.candidates[0].content.parts[0]&&j.candidates[0].content.parts[0].text;
-   if(t)return res.status(200).json({text:t.trim()});
-  }catch(e){}
+ const key=process.env.GEMINI_KEY;
+ const p=(req.body&&req.body.prompt)||"";
+ if(!key) return res.status(200).json({error: "GEMINI_KEY belum ada di env Vercel"});
+
+ try {
+   const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="+key, {
+     method: "POST",
+     headers: {"Content-Type": "application/json"},
+     body: JSON.stringify({contents:[{parts:[{text:p}]}]})
+   });
+   const j = await r.json();
+   if (j.candidates && j.candidates[0] && j.candidates[0].content) {
+     return res.status(200).json({text: j.candidates[0].content.parts[0].text});
+   }
+   // Kalau gagal, kirim pesan error aslinya biar ketahuan
+   return res.status(200).json({error: j.error ? j.error.message : "Tidak ada candidates", raw: JSON.stringify(j).slice(0,300)});
+ } catch(e) {
+   return res.status(200).json({error: e.message});
  }
- return res.status(200).json({text:null});
 }
