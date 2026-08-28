@@ -252,7 +252,22 @@ const providers={
  async news(){try{const r=await fetch("/api/news");if(r.ok){const j=await r.json();if(j.items&&j.items.length)return j.items}}catch(e){}
   const out=[];await Promise.all(FEEDS.map(async f=>{try{const r=await fetch("https://api.rss2json.com/v1/api?rss_url="+encodeURIComponent(f.url));const j=await r.json();(j.items||[]).slice(0,12).forEach(it=>out.push({src:f.name,tier:f.tier,t:it.title,link:it.link,date:it.pubDate}))}catch(e){try{const r=await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(f.url));const x=await r.text();new DOMParser().parseFromString(x,"text/xml").querySelectorAll("item").forEach((it,i)=>{if(i<12)out.push({src:f.name,tier:f.tier,t:it.querySelector("title")?.textContent||"",link:it.querySelector("link")?.textContent||"",date:it.querySelector("pubDate")?.textContent||""})})}catch(e2){}}}));
   return out.filter(i=>i.t)},
- async llm(p){const r=await fetch("https://text.pollinations.ai/"+encodeURIComponent(p));if(!r.ok)throw new Error("LLM");return (await r.text()).trim()},
+  async llm(p){
+  if(CFG.geminiKey){for(const m of ["gemini-2.5-flash","gemini-2.0-flash"]){try{
+    const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent?key="+CFG.geminiKey,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:p}]}]})});
+    const j=await r.json();const t=j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts&&j.candidates[0].content.parts[0]&&j.candidates[0].content.parts[0].text;
+    if(t)return t.trim()}catch(e){}}}
+  if(CFG.groqKey){try{
+    const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+CFG.groqKey},body:JSON.stringify({model:"llama-3.1-8b-instant",messages:[{role:"user",content:p}]})});
+    const j=await r.json();const t=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
+    if(t)return t.trim()}catch(e){}}
+  for(let i=0;i<2;i++){
+    try{const r=await fetch("https://text.pollinations.ai/"+encodeURIComponent(p));if(r.ok){const t=await r.text();if(t)return t.trim()}}catch(e){}
+    try{const r2=await fetch("https://text.pollinations.ai/openai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"openai",messages:[{role:"user",content:p}]})});if(r2.ok){const j=await r2.json();const t=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;if(t)return t.trim()}}catch(e){}
+    await new Promise(rs=>setTimeout(rs,2500));
+  }
+  throw new Error("LLM");
+ },
  image:(p,w,h)=>"https://image.pollinations.ai/prompt/"+encodeURIComponent(p)+"?width="+w+"&height="+h+"&nologo=true&seed="+Math.floor(Math.random()*1e5),
  async stats(p){const r=await fetch("https://www.thesportsdb.com/api/v1/json/"+(CFG.theSportsDBKey||"3")+"/"+p);if(!r.ok)throw new Error("TSD");return r.json()}
 };
