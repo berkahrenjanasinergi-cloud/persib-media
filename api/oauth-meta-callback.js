@@ -7,10 +7,12 @@ export default async function handler(req,res){
   if(!r.access_token)throw new Error("Gagal token: "+(r.error_message||JSON.stringify(r)));
   const l=await(await fetch("https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id="+A+"&client_secret="+S+"&fb_exchange_token="+r.access_token)).json();
   const long=l.access_token||r.access_token;
-  const acc=await(await fetch("https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,username}&access_token="+long)).json();
-  if(acc.error)throw new Error("Facebook bilang: "+acc.error.message);
+  const dbg=await(await fetch("https://graph.facebook.com/v21.0/debug_token?input_token="+encodeURIComponent(long)+"&access_token="+A+"%7C"+S)).json();
+  const scopes=((dbg.data&&dbg.data.scopes)||[]).join(",");
+  const me=await(await fetch("https://graph.facebook.com/v21.0/me?fields=id,name&access_token="+long)).json();
+  const acc=await(await fetch("https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,username}&limit=100&access_token="+long)).json();
   const pages=acc.data||[];
-  if(!pages.length)throw new Error("Akun yang login tidak mengelola Page manapun. Loginlah dengan akun admin Page.");
+  if(!pages.length)throw new Error("SINAR-X → akun: "+(me.name||me.id)+" | izin disetujui: ["+scopes+"] | Page terlihat: 0");
   const page=pages[0];
   await fetch(U+"/rest/v1/connections?id=eq.facebook",{method:"DELETE",headers:H(K)});
   await fetch(U+"/rest/v1/connections",{method:"POST",headers:H(K),body:JSON.stringify({id:"facebook",platform:"facebook",account_name:page.name,account_id:page.id,access_token:page.access_token})});
@@ -20,7 +22,7 @@ export default async function handler(req,res){
    await fetch(U+"/rest/v1/connections",{method:"POST",headers:H(K),body:JSON.stringify({id:"instagram",platform:"instagram",account_name:"@"+(ig.username||ig.id),account_id:ig.id,access_token:page.access_token})});
    res.redirect("/?connected="+encodeURIComponent("Facebook + Instagram @"+(ig.username||"")+" TERHUBUNG"));
   }else{
-   res.redirect("/?connect_error="+encodeURIComponent("Facebook OK, tapi Page '"+page.name+"' belum punya Instagram tertaut. Tautkan di: Pengaturan Page → Akun tertaut → Instagram."));
+   res.redirect("/?connect_error="+encodeURIComponent("Facebook OK ("+page.name+") tapi IG belum tertaut ke Page."));
   }
  }catch(e){res.redirect("/?connect_error="+encodeURIComponent(String(e.message||e)))}
 }
