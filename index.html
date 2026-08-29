@@ -299,7 +299,7 @@ async function loadNews(){$("#nrStatus").textContent="Mengambil berita asli dari
  const poolOf=t=>{t=t.toLowerCase();if(/persib|bobotoh|maung|bandung|jabar/.test(t))return 0;if(/liga 1|liga 2|timnas|pssi|garuda|arema|persija|persebaya|bali united|psm|sepak ?bola/.test(t))return 1;return 2};
  const pools=[[],[],[]];stories.forEach(s=>pools[poolOf(s.t)].push(s));
  const ratio=[0.5,0.3,0.2],idx=[0,0,0],mixed=[];
- for(let i=0;i<stories.length;i++){let ok=false;for(let k=0;k<3;k++){const want=Math.round(stories.length*ratio[k]);const taken=mixed.filter(x=>poolOf(x.t)===k).length;if(taken<want&&idx[k]<pools[k].length){mixed.push(pools[k][idx[k]++);ok=true;break}}if(!ok){for(let k=0;k<3;k++){if(idx[k]<pools[k].length){mixed.push(pools[k][idx[k]++]);break}}}}
+ for(let i=0;i<stories.length;i++){let ok=false;for(let k=0;k<3;k++){const want=Math.round(stories.length*ratio[k]);const taken=mixed.filter(x=>poolOf(x.t)===k).length;if(taken<want&&idx[k]<pools[k].length){mixed.push(pools[k][idx[k]++]);ok=true;break}}if(!ok){for(let k=0;k<3;k++){if(idx[k]<pools[k].length){mixed.push(pools[k][idx[k]++]);break}}}}
  stories=mixed.slice(0,40);
  FEEDS.forEach(f=>feedStat[f.name]=stories.filter(s=>s.src===f.name).length);
  $("#liveTxt").textContent="LIVE · "+stories.length+" berita · "+FEEDS.length+" sumber RSS";
