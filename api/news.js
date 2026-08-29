@@ -11,9 +11,22 @@ const FEEDS=[
 ];
 export default async function handler(req,res){
  const out=[];
- await Promise.all(FEEDS.map(async f=>{try{
-   const r=await fetch(f.url,{headers:{"User-Agent":"Mozilla/5.0"}});const x=await r.text();
-   [...x.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0,12).forEach(m=>{
-     const g=t=>{const mm=m[1].match(new RegExp("<"+t+"[^>]*>([\\s\\S]*?)</"+t+">"));return mm?mm[1].replace(/<!\[CDATA\[|\]\]>/g,"").replace(/<[^>]+>/g,"").trim():""};
-       const t=g("title");const eu=(m[1].match(/<enclosure[^>]*url="([^"]+)"/)||m[1].match(/<media:content[^>]*url="([^"]+)"/)||[])[1]||"";
-     if(t&&(!f.f||f.f.test(t)))out.push({src:f.name,tier:f.tier,t,link:g("link"),date:g("pubDate"),img:eu});  
+ await Promise.all(FEEDS.map(async f=>{
+  try{
+   const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),8000);
+   const r=await fetch(f.url,{headers:{"User-Agent":"Mozilla/5.0 (compatible; BandungBiruBot/1.0)"},signal:ctrl.signal});
+   clearTimeout(to);
+   const x=await r.text();
+   const items=[...x.matchAll(/<item[\s>][\s\S]*?<\/item>/gi)].slice(0,10);
+   for(const m of items){
+    try{
+     const get=t=>{const mm=m[0].match(new RegExp("<"+t+"[^>]*>([\\s\\S]*?)</"+t+">","i"));return mm?mm[1].replace(/<!\[CDATA\[|\]\]>/g,"").replace(/<[^>]+>/g,"").trim():""};
+     const eu=(m[0].match(/<enclosure[^>]*url="([^"]+)"/i)||m[0].match(/<media:content[^>]*url="([^"]+)"/i)||[])[1]||"";
+     const t=get("title");
+     if(t&&(!f.f||f.f.test(t)))out.push({src:f.name,tier:f.tier,t,link:get("link"),date:get("pubDate")||"",img:eu});
+    }catch(e){}
+   }
+  }catch(e){}
+ }));
+ res.status(200).json({items:out});
+}
