@@ -252,8 +252,13 @@ const FEEDS=[
  {name:"ANTARA",tier:2,url:"https://www.antaranews.com/rss/terkini",rel:90,f:/bandung|jabar|persib|bobotoh|timnas|sepak ?bola/i}
 ];
 const providers={
- async news(){try{const r=await fetch("/api/news");if(r.ok){const j=await r.json();if(j.items&&j.items.length)return j.items}}catch(e){}
-  const out=[];await Promise.all(FEEDS.map(async f=>{try{const r=await fetch("https://api.rss2json.com/v1/api?rss_url="+encodeURIComponent(f.url));const j=await r.json();(j.items||[]).slice(0,12).forEach(it=>{if(f.f&&!f.f.test(it.title))return;out.push({src:f.name,tier:f.tier,t:it.title,link:it.link,date:it.pubDate,img:(it.enclosure&&it.enclosure.link)||it.thumbnail||""})})}catch(e){try{const r=await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(f.url));const x=await r.text();new DOMParser().parseFromString(x,"text/xml").querySelectorAll("item").forEach((it,i)=>{if(i<12){const t=it.querySelector("title")?.textContent||"";if(f.f&&!f.f.test(t))return;const en=it.getElementsByTagName("enclosure")[0];const mc=it.getElementsByTagName("media:content")[0];out.push({src:f.name,tier:f.tier,t,link:it.querySelector("link")?.textContent||"",date:it.querySelector("pubDate")?.textContent||"",img:(en&&en.getAttribute("url"))||(mc&&mc.getAttribute("url"))||""})}})}catch(e2){}}}));
+  async news(){try{const r=await fetch("/api/news");if(r.ok){const j=await r.json();if(j.items&&j.items.length)return j.items}}catch(e){}
+  const out=[];const PROX=[u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),u=>"https://corsproxy.io/?url="+encodeURIComponent(u)];
+  await Promise.all(FEEDS.map(async f=>{for(const px of PROX){try{
+    const r=await fetch(px(f.url));if(!r.ok)continue;const x=await r.text();
+    new DOMParser().parseFromString(x,"text/xml").querySelectorAll("item").forEach((it,i)=>{if(i<12){const t=it.querySelector("title")?.textContent||"";if(f.f&&!f.f.test(t))return;const en=it.getElementsByTagName("enclosure")[0];const mc=it.getElementsByTagName("media:content")[0];out.push({src:f.name,tier:f.tier,t,link:it.querySelector("link")?.textContent||"",date:it.querySelector("pubDate")?.textContent||"",img:(en&&en.getAttribute("url"))||(mc&&mc.getAttribute("url"))||""})}});
+    if(out.some(o=>o.src===f.name))break;
+   }catch(e){}}}));
   return out.filter(i=>i.t)},
  async llm(p){
   let serverErr="";
