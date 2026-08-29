@@ -104,7 +104,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th{font-size:10.5px;t
   </section>
   <section class="view" id="v-newsroom">
     <div class="vhead"><div><h2>AI Newsroom</h2><p id="nrStatus">Mengambil berita asli dari RSS…</p></div>
-    <div class="row"><input class="inp" id="nrSearch" placeholder="Filter judul…" style="width:200px"><button class="btn ghost" data-action="reloadNews">⟳ Muat ulang</button></div></div>
+    <div class="row"><input class="inp" id="nrSearch" placeholder="Filter judul…" style="width:200px"><button class="btn ghost" data-action="reloadNews">⟳ Muat ulang</button><button class="btn dark" data-action="socLead">📱 Pantauan Sosmed</button></div></div>
     <div class="row" style="margin-bottom:12px"><div class="seg" id="nrCats"></div></div>
     <div class="grid" id="nrList" style="gap:11px"></div>
   </section>
@@ -459,7 +459,11 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
  if(a==="bell"){$("#bellPanel").classList.toggle("on");e.stopPropagation()}
  if(a==="mClose")closeModal();
  if(a==="qa")go(el.dataset.what);
- if(a==="reloadNews")loadNews();
+  if(a==="reloadNews")loadNews();
+ if(a==="socLead"){modal("Pantauan Sosial Media (LEAD Tier 5)",'<div class="fld"><label>Platform</label><select class="inp" id="slPlat"><option>Instagram</option><option>X</option><option>TikTok</option><option>YouTube</option><option>Threads</option><option>Facebook</option></select></div><div class="fld"><label>Link postingan (opsional)</label><input class="inp" id="slUrl" placeholder="https://instagram.com/p/…"></div><div class="fld"><label>Ringkasan dengan kata-katamu sendiri (jangan copy-paste)</label><textarea class="inp" id="slTxt" placeholder="mis.: ramai unggahan soal rumor gelandang asing ikut latihan di Bandung…"></textarea></div><div class="warnnote">Ini LEAD, bukan fakta. Sistem akan cross-check ke RSS dan menulis konten ORIGINAL — tidak menyalin unggahan siapa pun.</div>','<button class="btn ghost" data-action="mClose">Batal</button><button class="btn pri" data-action="slSave">+ Jadikan Lead</button>')}
+ if(a==="slSave"){const t=$("#slTxt").value.trim();if(!t){toast("Isi ringkasannya dulu.","warn");return}
+  stories.unshift({id:Date.now(),src:"Pantauan "+$("#slPlat").value+" (manual)",tier:5,t,link:$("#slUrl").value||"",date:new Date(),cat:catOf(t),img:""});
+  closeModal();rNewsroom();buildCsTopics();toast("📱 Lead Tier 5 masuk Newsroom — verifikasi dulu sebelum publish.","ok")}
  if(a==="nrCat"){nrCat=el.dataset.c;rNewsroom()}
  if(a==="trendUse"){go("image");$("#isHead").value=el.dataset.t.toUpperCase();toast("🔥 Topik dimuat ke Image Studio.")}
  if(a==="verify"){const s=stories.find(x=>x.id==el.dataset.id);const v=verifyStory(s);
@@ -528,7 +532,8 @@ document.addEventListener("click",async e=>{if(e.target.closest('[data-action="i
 async function genContent(){const s=stories.find(x=>x.id==$("#csTopic").value);const fmt=$("#csFmt .on").dataset.f;const v=state.voice;
  $("#csOut").innerHTML='<div class="skel"></div><div class="skel"></div>';
  const ctx=s?("Berita asli: "+s.t+" (sumber: "+s.src+", verifikasi: "+verifyStory(s).label+"). "):"";
- try{const t=await providers.llm("Kamu editor media Persib independen. Voice: energi "+v.energy+", humor "+v.humor+", profesional "+v.professional+", emosional "+v.emotional+", clickbait "+v.clickbait+"/100. Jangan nyatakan rumor sebagai fakta, jangan fabrikasi statistik/kutipan. "+ctx+"Buat format "+fmt+" untuk "+$("#csPlat").value+", bahasa Indonesia.");
+ const soc=(s&&s.tier===5)?" PENTING: bahan ini pantauan sosial media. Tulis laporan 100% ORIGINAL dengan sudut pandang sendiri; sebutkan 'berdasarkan pantauan unggahan di "+(s.src||"sosial media")+" (belum terverifikasi resmi)'; JANGAN menyalin kalimat unggahan mana pun; jangan menyatakan sebagai fakta.":"";
+ try{const t=await providers.llm("Kamu editor media Persib independen. Voice: energi "+v.energy+", humor "+v.humor+", profesional "+v.professional+", emosional "+v.emotional+", clickbait "+v.clickbait+"/100. Jangan nyatakan rumor sebagai fakta, jangan fabrikasi statistik/kutipan. "+ctx+soc+"Buat format "+fmt+" untuk "+$("#csPlat").value+", bahasa Indonesia.");
   logEvent("content_gen",{fmt});
   $("#csOut").innerHTML='<div class="row" style="margin-bottom:10px"><span class="chip ok">LLM REAL</span><span class="chip info">'+fmt+'</span><span class="sp"></span><button class="btn ghost sm" data-action="copyOut">Copy</button><button class="btn pri sm" data-action="csApprove">✔ Approve & Publish Now</button></div><div id="csGenOut" style="white-space:pre-wrap" class="sm">'+esc(t)+'</div><div class="hr"></div><b class="sm">Sources (REAL)</b><div class="row" style="margin-top:6px">'+(s?'<a class="chip mut" href="'+esc(s.link)+'" target="_blank" rel="noopener">'+esc(s.src)+' ↗</a>':"")+"</div>"}
  catch(e){$("#csOut").innerHTML='<div class="warnnote">LLM: '+esc(String(e.message||e))+'</div>'}}
