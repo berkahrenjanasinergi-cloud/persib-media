@@ -474,7 +474,10 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
  if(a==="dtab"){dtTab=el.dataset.t;$$("#dtTabs button").forEach(b=>b.classList.toggle("on",b===el));rData()}
  if(a==="voice"){state.voice[el.dataset.key]=+el.target.value;const l=document.getElementById("vv-"+el.dataset.g+"-"+el.dataset.key);l&&(l.textContent=el.target.value);save()}
  if(a==="csGen")genContent();
- if(a==="csApprove"){const pl=$("#csPlat").value.toLowerCase();const txt=$("#csGenOut").innerText.slice(0,800);
+  if(a==="csApprove"){try{
+  const platSel=$("#csPlat"),outEl=$("#csGenOut");
+  if(!platSel||!outEl)throw new Error("Generate konten dulu ya.");
+  const pl=(platSel.value||"instagram").toLowerCase();const txt=(outEl.innerText||"").slice(0,800);
   if(API_OK&&["instagram","facebook","tiktok","telegram","discord"].includes(pl)){
    const p0=await store.add("posts",{platform:pl,content:txt,scheduled_at:new Date().toISOString(),status:"scheduled",result:"approve-now"});
    const j=await serverPublish({platform:pl,content:txt});
@@ -484,6 +487,8 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
    await store.add("posts",{platform:pl,content:txt,scheduled_at:new Date(Date.now()+3600e3).toISOString(),status:"approval"});
    toast("✔ Masuk queue (platform ini manual/share).");
   }
+  await loadDB();rScheduler();rOverview();rBell();
+ }catch(err){toast("⚠️ "+String(err.message||err),"warn");console.error(err)}}
   await loadDB();rScheduler();rOverview();rBell()}
  if(a==="copyOut"){navigator.clipboard&&navigator.clipboard.writeText($("#csGenOut").innerText);toast("📋 Disalin.","ok")}
  if(a==="isGen")genImage();
