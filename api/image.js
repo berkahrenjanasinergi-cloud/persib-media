@@ -1,7 +1,14 @@
 export default async function handler(req,res){
  const key=process.env.GEMINI_KEY;const p=(req.body&&req.body.prompt)||"";
  if(!key)return res.status(200).json({error:"GEMINI_KEY belum ada"});
- const MODELS=["gemini-2.5-flash-image","gemini-2.0-flash-preview-image-generation"];
+ let MODELS=["gemini-2.5-flash-image","gemini-2.0-flash-preview-image-generation"];
+ try{
+  const lr=await fetch("https://generativelanguage.googleapis.com/v1beta/models?key="+key+"&pageSize=300");
+  const lj=await lr.json();
+  const avail=(lj.models||[]).map(x=>(x.name||"").replace("models/",""));
+  const img=avail.filter(n=>/(-image|image-|imagen|img-|-img)/i.test(n));
+  if(img.length)MODELS=[...img,...MODELS];
+ }catch(e){}
  let last="";
  for(const m of MODELS){
   try{
