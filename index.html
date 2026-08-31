@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <!--
-BANDUNG BIRU AI — index.html FULL (v4)
-Semua dalam satu file: newsroom RSS terfilter (50% Persib/Bandung, 30% bola lokal, 20% bola dunia),
-LLM via /api/llm (Gemini server-side), Image Studio poster (foto asli ber-kredit 80% / Gemini 20% / upload),
-auto-post REAL IG/FB/TikTok/Telegram/Discord via /api/publish + tick + cron-job.org.
-Foto RSS tetap milik media — kredit otomatis; komersial = pastikan izin.
+BANDUNG BIRU AI — index.html FINAL (v5)
+Newsroom: 14 sumber (RSS resmi + Google News agregator) porsi 50/30/20.
+LLM via /api/llm (Gemini server-side). Image Studio poster (foto asli ber-kredit 80% / Gemini 20% / upload).
+Pantauan Sosmed = LEAD Tier 5 (original, ber-atribusi, anti-plagiarisme).
+Auto-post REAL IG/FB/TikTok/Telegram/Discord via /api/publish + tick + cron-job.org.
 -->
 <html lang="id"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -243,16 +243,21 @@ const logEvent=(k,m)=>store.add("events",{kind:k,meta:m||{}});
 const FEEDS=[
  {name:"Persib.co.id",tier:1,url:"https://persib.co.id/feed",rel:97},
  {name:"Simamaung",tier:2,url:"https://simamaung.com/feed",rel:92},
- {name:"BBC Football",tier:2,url:"https://feeds.bbci.co.uk/sport/football/rss.xml",rel:95},
- {name:"Guardian Football",tier:2,url:"https://www.theguardian.com/football/rss",rel:93},
+ {name:"Bandung Football",tier:2,url:"https://bandungfootball.com/feed",rel:88},
+ {name:"Pikiran Rakyat",tier:2,url:"https://www.pikiran-rakyat.com/feed",rel:84,f:/persib|bobotoh|bandung|jabar/i},
  {name:"Bola.com",tier:2,url:"https://www.bola.com/feed",rel:86,f:/persib|bobotoh|liga 1|timnas|sepak ?bola|maung|piala/i},
- {name:"Detik Sport",tier:2,url:"https://feed.detik.com/index.php/sport",rel:88,f:/persib|bobotoh|liga|timnas|sepak ?bola|piala|mundial|premier|champions|eropa/i},
- {name:"Tribun Jabar",tier:2,url:"https://jabar.tribunnews.com/rss",rel:85,f:/bandung|jabar|persib|bobotoh|cimahi|sumedang|purwakarta/i},
- {name:"Pikiran Rakyat",tier:2,url:"https://www.pikiran-rakyat.com/feed",rel:84,f:/bandung|jabar|persib|bobotoh/i},
- {name:"ANTARA",tier:2,url:"https://www.antaranews.com/rss/terkini",rel:90,f:/bandung|jabar|persib|bobotoh|timnas|sepak ?bola/i}
+ {name:"Okezone",tier:2,url:"https://rss.okezone.com/rss/sport",rel:82,f:/persib|bobotoh|timnas|liga/i},
+ {name:"Detik Sport",tier:2,url:"https://feed.detik.com/index.php/sport",rel:88,f:/persib|bobotoh|liga|timnas|sepak ?bola|piala/i},
+ {name:"Tribun Jabar",tier:2,url:"https://jabar.tribunnews.com/rss",rel:85,f:/bandung|jabar|persib|bobotoh/i},
+ {name:"GNews Persib",tier:2,url:"https://news.google.com/rss/search?q=persib+bandung&hl=id&gl=ID&ceid=ID:id",rel:90,ps:1},
+ {name:"GNews Bobotoh",tier:2,url:"https://news.google.com/rss/search?q=bobotoh&hl=id&gl=ID&ceid=ID:id",rel:88,ps:1},
+ {name:"GNews Liga 1",tier:2,url:"https://news.google.com/rss/search?q=liga+1+indonesia&hl=id&gl=ID&ceid=ID:id",rel:88,ps:1},
+ {name:"GNews Bola Dunia",tier:2,url:"https://news.google.com/rss/search?q=sepak+bola+dunia&hl=id&gl=ID&ceid=ID:id",rel:85,ps:1},
+ {name:"BBC Football",tier:2,url:"https://feeds.bbci.co.uk/sport/football/rss.xml",rel:95},
+ {name:"Guardian Football",tier:2,url:"https://www.theguardian.com/football/rss",rel:93}
 ];
 const providers={
-  async news(){try{const r=await fetch("/api/news");if(r.ok){const j=await r.json();if(j.items&&j.items.length)return j.items}}catch(e){}
+ async news(){try{const r=await fetch("/api/news");if(r.ok){const j=await r.json();if(j.items&&j.items.length)return j.items}}catch(e){}
   const out=[];const PROX=[u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),u=>"https://corsproxy.io/?url="+encodeURIComponent(u)];
   await Promise.all(FEEDS.map(async f=>{for(const px of PROX){try{
     const r=await fetch(px(f.url));if(!r.ok)continue;const x=await r.text();
@@ -459,7 +464,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
  if(a==="bell"){$("#bellPanel").classList.toggle("on");e.stopPropagation()}
  if(a==="mClose")closeModal();
  if(a==="qa")go(el.dataset.what);
-  if(a==="reloadNews")loadNews();
+ if(a==="reloadNews")loadNews();
  if(a==="socLead"){modal("Pantauan Sosial Media (LEAD Tier 5)",'<div class="fld"><label>Platform</label><select class="inp" id="slPlat"><option>Instagram</option><option>X</option><option>TikTok</option><option>YouTube</option><option>Threads</option><option>Facebook</option></select></div><div class="fld"><label>Link postingan (opsional)</label><input class="inp" id="slUrl" placeholder="https://instagram.com/p/…"></div><div class="fld"><label>Ringkasan dengan kata-katamu sendiri (jangan copy-paste)</label><textarea class="inp" id="slTxt" placeholder="mis.: ramai unggahan soal rumor gelandang asing ikut latihan di Bandung…"></textarea></div><div class="warnnote">Ini LEAD, bukan fakta. Sistem akan cross-check ke RSS dan menulis konten ORIGINAL — tidak menyalin unggahan siapa pun.</div>','<button class="btn ghost" data-action="mClose">Batal</button><button class="btn pri" data-action="slSave">+ Jadikan Lead</button>')}
  if(a==="slSave"){const t=$("#slTxt").value.trim();if(!t){toast("Isi ringkasannya dulu.","warn");return}
   stories.unshift({id:Date.now(),src:"Pantauan "+$("#slPlat").value+" (manual)",tier:5,t,link:$("#slUrl").value||"",date:new Date(),cat:catOf(t),img:""});
@@ -474,7 +479,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
  if(a==="dtab"){dtTab=el.dataset.t;$$("#dtTabs button").forEach(b=>b.classList.toggle("on",b===el));rData()}
  if(a==="voice"){state.voice[el.dataset.key]=+el.target.value;const l=document.getElementById("vv-"+el.dataset.g+"-"+el.dataset.key);l&&(l.textContent=el.target.value);save()}
  if(a==="csGen")genContent();
-  if(a==="csApprove"){try{
+ if(a==="csApprove"){try{
   const platSel=$("#csPlat"),outEl=$("#csGenOut");
   if(!platSel||!outEl)throw new Error("Generate konten dulu ya.");
   const pl=(platSel.value||"instagram").toLowerCase();const txt=(outEl.innerText||"").slice(0,800);
@@ -489,7 +494,6 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
   }
   await loadDB();rScheduler();rOverview();rBell();
  }catch(err){toast("⚠️ "+String(err.message||err),"warn");console.error(err)}}
-  await loadDB();rScheduler();rOverview();rBell()}
  if(a==="copyOut"){navigator.clipboard&&navigator.clipboard.writeText($("#csGenOut").innerText);toast("📋 Disalin.","ok")}
  if(a==="isGen")genImage();
  if(a==="isSave"){const img=$("#isOut img");if(img){await store.add("assets",{kind:"image",url:img.src,prompt:$("#isHead").value,tags:"poster"});toast("🖼️ Asset tersimpan.","ok")}}
