@@ -447,8 +447,7 @@ async function genImage(){
    if(realUrl){try{base=await loadImg("https://api.allorigins.win/raw?url="+encodeURIComponent(realUrl));credit="📷 "+(st?st.src:"media");kind="real"}catch(e){}}
   }
   if(!base){
-   const prompt="Bandung football editorial poster, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)+", deep blue stadium floodlights atmosphere, energetic crowd silhouette, premium sports media photo, no text, no logos";
-   try{const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();if(j.dataUrl){base=await loadImg(j.dataUrl);credit="AI: GEMINI";kind="ai"}}catch(e){}
+   const prompt="Photorealistic editorial sports photography, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)+", natural stadium floodlights, candid atmosphere, realistic textures and depth of field, shot on 35mm lens, premium newsroom photo, no text, no logos, no watermark";   try{const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();if(j.dataUrl){base=await loadImg(j.dataUrl);credit="AI: GEMINI";kind="ai"}}catch(e){}
    if(!base){base=await loadImg(providers.image(prompt,w,h));credit="AI: POLLINATIONS";kind="ai"}
   }
   const canvas=await drawPoster(base,head,credit,w,h);
