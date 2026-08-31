@@ -441,7 +441,11 @@ async function genImage(){
  let base=null,credit="",kind="";
  try{
   if(mode==="up"){const f=$("#isFile").files[0];if(!f)throw new Error("Pilih file dulu");base=await loadImg(URL.createObjectURL(f));credit="DOK. PRIBADI";kind="upload"}
-  else if(mode==="real"||(mode==="auto"&&st&&st.img&&Math.random()<0.8)){if(st&&st.img){try{base=await loadImg("https://api.allorigins.win/raw?url="+encodeURIComponent(st.img));credit="📷 "+st.src;kind="real"}catch(e){}}}
+  else if(mode==="real"||(mode==="auto"&&Math.random()<0.8)){
+   let realUrl=(st&&st.img)||"";
+   if(!realUrl&&st&&st.link){try{const r=await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(st.link));const hx=await r.text();const m=hx.match(/<meta[^>]*(property|name)="og:image"[^>]*content="([^"]+)"/i)||hx.match(/<meta[^>]*content="([^"]+)"[^>]*(property|name)="og:image"/i);realUrl=(m&&(m[2]||m[1]))||""}catch(e){}}
+   if(realUrl){try{base=await loadImg("https://api.allorigins.win/raw?url="+encodeURIComponent(realUrl));credit="📷 "+(st?st.src:"media");kind="real"}catch(e){}}
+  }
   if(!base){
    const prompt="Bandung football editorial poster, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)+", deep blue stadium floodlights atmosphere, energetic crowd silhouette, premium sports media photo, no text, no logos";
    try{const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();if(j.dataUrl){base=await loadImg(j.dataUrl);credit="AI: GEMINI";kind="ai"}}catch(e){}
