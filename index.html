@@ -485,7 +485,16 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
   const pl=(platSel.value||"instagram").toLowerCase();const txt=(outEl.innerText||"").slice(0,800);
   if(API_OK&&["instagram","facebook","tiktok","telegram","discord"].includes(pl)){
    const p0=await store.add("posts",{platform:pl,content:txt,scheduled_at:new Date().toISOString(),status:"scheduled",result:"approve-now"});
-   const j=await serverPublish({platform:pl,content:txt});
+   let imgUrl="";
+   if(pl==="instagram"&&sbOn){try{
+     const nm="ig-"+Date.now()+".png";
+     const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:"Bandung football editorial poster, "+txt.slice(0,110)+", deep blue stadium floodlights atmosphere, no text, no logos"})});
+     const jI=await r.json();
+     if(jI.dataUrl){const blob=await (await fetch(jI.dataUrl)).blob();
+      const up=await fetch(SB.url+"/storage/v1/object/media/"+nm,{method:"POST",headers:{apikey:SB.key,Authorization:"Bearer "+SB.key,"Content-Type":"image/png"},body:blob});
+      if(up.ok)imgUrl=SB.url+"/storage/v1/object/public/media/"+nm}
+   }catch(e){}}
+   const j=await serverPublish({platform:pl,content:txt,image_url:imgUrl||undefined});
    if(j.ok){await store.patch("posts",p0.id,{status:"published",result:"real"});logEvent("publish_ok",{platform:pl});toast("✅ Approved & PUBLISHED REAL ke "+pl+"!","ok")}
    else{await store.patch("posts",p0.id,{status:"failed",result:(j.error||"").slice(0,100)});logEvent("publish_fail",{platform:pl});toast("❌ "+(j.error||"gagal"),"bad")}
   }else{
