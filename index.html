@@ -1,10 +1,7 @@
 <!DOCTYPE html>
 <!--
-BANDUNG BIRU AI — index.html FINAL (v5)
-Newsroom: 14 sumber (RSS resmi + Google News agregator) porsi 50/30/20.
-LLM via /api/llm (Gemini server-side). Image Studio poster (foto asli ber-kredit 80% / Gemini 20% / upload).
-Pantauan Sosmed = LEAD Tier 5 (original, ber-atribusi, anti-plagiarisme).
-Auto-post REAL IG/FB/TikTok/Telegram/Discord via /api/publish + tick + cron-job.org.
+BANDUNG BIRU AI — index.html FINAL (v6)
+Newsroom 14 sumber (RSS + Google News) porsi 50/30/20 · LLM /api/llm · Image Studio: Gemini image natural + foto asli og:image ber-kredit + upload · auto-post REAL.
 -->
 <html lang="id"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -129,7 +126,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th{font-size:10.5px;t
     </div>
   </section>
   <section class="view" id="v-image">
-    <div class="vhead"><div><h2>Image Studio</h2><p>Poster ala media Bandung: foto asli ber-kredit (80%) · Gemini AI (20%) · upload sendiri + tipografi bold.</p></div></div>
+    <div class="vhead"><div><h2>Image Studio</h2><p>Poster ala media Bandung: foto asli ber-kredit (80%) · Gemini AI natural (20%) · upload sendiri + tipografi bold.</p></div></div>
     <div class="grid" style="grid-template-columns:340px 1fr;align-items:start">
       <div class="card pad">
         <div class="fld"><label>Berita / topik</label><select class="inp" id="isTopicSel"></select></div>
@@ -441,17 +438,14 @@ async function genImage(){
  let base=null,credit="",kind="";
  try{
   if(mode==="up"){const f=$("#isFile").files[0];if(!f)throw new Error("Pilih file dulu");base=await loadImg(URL.createObjectURL(f));credit="DOK. PRIBADI";kind="upload"}
-    else if(mode==="real"||(mode==="auto"&&Math.random()<0.8)){
+  else if(mode==="real"||(mode==="auto"&&Math.random()<0.8)){
    let realUrl=(st&&st.img)||"";
    if(!realUrl&&st&&st.link){for(const px of ["https://api.allorigins.win/raw?url=","https://corsproxy.io/?url="]){try{const r=await fetch(px+encodeURIComponent(st.link));if(!r.ok)continue;const hx=await r.text();const m=hx.match(/<meta[^>]*(property|name)="og:image"[^>]*content="([^"]+)"/i)||hx.match(/<meta[^>]*content="([^"]+)"[^>]*(property|name)="og:image"/i);realUrl=(m&&(m[2]||m[1]))||"";if(realUrl)break}catch(e){}}}
    if(realUrl){for(const px of ["https://api.allorigins.win/raw?url=","https://corsproxy.io/?url=",""]){try{base=await loadImg(px?px+encodeURIComponent(realUrl):realUrl);credit="📷 "+(st?st.src:"media");kind="real";break}catch(e){}}}
   }
-   let realUrl=(st&&st.img)||"";
-   if(!realUrl&&st&&st.link){try{const r=await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(st.link));const hx=await r.text();const m=hx.match(/<meta[^>]*(property|name)="og:image"[^>]*content="([^"]+)"/i)||hx.match(/<meta[^>]*content="([^"]+)"[^>]*(property|name)="og:image"/i);realUrl=(m&&(m[2]||m[1]))||""}catch(e){}}
-   if(realUrl){try{base=await loadImg("https://api.allorigins.win/raw?url="+encodeURIComponent(realUrl));credit="📷 "+(st?st.src:"media");kind="real"}catch(e){}}
-  }
   if(!base){
-   const prompt="Photorealistic editorial sports photography, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)+", natural stadium floodlights, candid atmosphere, realistic textures and depth of field, shot on 35mm lens, premium newsroom photo, no text, no logos, no watermark";   try{const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();if(j.dataUrl){base=await loadImg(j.dataUrl);credit="AI: GEMINI";kind="ai"}}catch(e){}
+   const prompt="Photorealistic editorial sports photography, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)+", natural stadium floodlights, candid atmosphere, realistic textures and depth of field, shot on 35mm lens, premium newsroom photo, no text, no logos, no watermark";
+   try{const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();if(j.dataUrl){base=await loadImg(j.dataUrl);credit="AI: GEMINI";kind="ai"}}catch(e){}
    if(!base){base=await loadImg(providers.image(prompt,w,h));credit="AI: POLLINATIONS";kind="ai"}
   }
   const canvas=await drawPoster(base,head,credit,w,h);
@@ -495,7 +489,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
    let imgUrl="";
    if(pl==="instagram"&&sbOn){try{
      const nm="ig-"+Date.now()+".png";
-     const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:"Bandung football editorial poster, "+txt.slice(0,110)+", deep blue stadium floodlights atmosphere, no text, no logos"})});
+     const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:"Photorealistic editorial sports photography, "+txt.slice(0,110)+", natural stadium floodlights, no text, no logos"})});
      const jI=await r.json();
      if(jI.dataUrl){const blob=await (await fetch(jI.dataUrl)).blob();
       const up=await fetch(SB.url+"/storage/v1/object/media/"+nm,{method:"POST",headers:{apikey:SB.key,Authorization:"Bearer "+SB.key,"Content-Type":"image/png"},body:blob});
