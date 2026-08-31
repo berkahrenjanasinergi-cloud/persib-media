@@ -545,6 +545,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
 });
 document.addEventListener("click",e=>{if(!e.target.closest("#bellPanel")&&!e.target.closest('[data-action="bell"]'))$("#bellPanel").classList.remove("on")});
 document.addEventListener("input",e=>{if(e.target.id==="nrSearch")rNewsroom()});
+document.addEventListener("click",e=>{const s=e.target.closest(".seg button");if(!s)return;const box=s.parentElement;if(!box||!box.id)return;$$("#"+box.id+" button").forEach(b=>b.classList.remove("on"));s.classList.add("on");if(box.id==="isSrc")$("#isUpWrap").style.display=s.dataset.s==="up"?"":"none"});
 document.addEventListener("click",async e=>{if(e.target.closest('[data-action="isQueue"]')){await store.add("posts",{platform:"instagram",content:($("#isHead").value||"PERSIB! 🔵")+" #Persib #Bobotoh",image_url:window._lastImg,scheduled_at:new Date(Date.now()+3600e3).toISOString(),status:"approval"});await loadDB();rScheduler();toast("📮 Poster masuk queue → approve untuk publish.","ok")}});
 
 /* ---------- generators ---------- */
