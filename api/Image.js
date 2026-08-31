@@ -1,4 +1,4 @@
- export default async function handler(req,res){
+export default async function handler(req,res){
  const key=process.env.GEMINI_KEY;const p=(req.body&&req.body.prompt)||"";
  if(!key)return res.status(200).json({error:"GEMINI_KEY belum ada"});
  const MODELS=["gemini-2.5-flash-image","gemini-2.0-flash-preview-image-generation"];
