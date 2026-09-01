@@ -438,10 +438,13 @@ async function genImage(){
  let base=null,credit="",kind="";
  try{
   if(mode==="up"){const f=$("#isFile").files[0];if(!f)throw new Error("Pilih file dulu");base=await loadImg(URL.createObjectURL(f));credit="DOK. PRIBADI";kind="upload"}
-  else if(mode==="real"||(mode==="auto"&&Math.random()<0.8)){
-   let realUrl=(st&&st.img)||"";
-      if(!realUrl&&st&&st.link){for(const px of ["/api/proxy?url=","https://api.allorigins.win/raw?url="]){try{const r=await fetch(px+encodeURIComponent(st.link));if(!r.ok)continue;const hx=await r.text();const m=hx.match(/<meta[^>]*(property|name)="og:image"[^>]*content="([^"]+)"/i)||hx.match(/<meta[^>]*content="([^"]+)"[^>]*(property|name)="og:image"/i);realUrl=(m&&(m[2]||m[1]))||"";if(realUrl)break}catch(e){}}}
-   if(realUrl){for(const px of ["/api/proxy?url=",""]){try{base=await loadImg(px?px+encodeURIComponent(realUrl):realUrl);credit="📷 "+(st?st.src:"media");kind="real";break}catch(e){}}}
+    else if(mode==="real"||(mode==="auto"&&Math.random()<0.8)){
+   let realUrl=(st&&st.img)||"",realSrc=st?st.src:"media";
+   const grab=async link=>{for(const px of ["/api/proxy?url=","https://api.allorigins.win/raw?url="]){try{const r=await fetch(px+encodeURIComponent(link));if(!r.ok)continue;const hx=await r.text();const m=hx.match(/<meta[^>]*(property|name)="og:image"[^>]*content="([^"]+)"/i)||hx.match(/<meta[^>]*content="([^"]+)"[^>]*(property|name)="og:image"/i);if(m)return m[2]||m[1]}catch(e){}}return ""};
+   if(!realUrl&&st&&st.link){realUrl=await grab(st.link)}
+   if(!realUrl&&st){const tk=tokens(st.t);const cands=stories.filter(o=>o.link&&o.id!==st.id&&tokens(o.t).some(w=>tk.includes(w))).slice(0,3);
+    for(const cd of cands){const u=await grab(cd.link);if(u){realUrl=u;realSrc=cd.src;break}}}
+   if(realUrl){for(const px of ["/api/proxy?url=",""]){try{base=await loadImg(px?px+encodeURIComponent(realUrl):realUrl);credit="📷 "+realSrc;kind="real";break}catch(e){}}}
   }
   if(!base){
    const prompt="Photorealistic editorial sports photography, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)+", natural stadium floodlights, candid atmosphere, realistic textures and depth of field, shot on 35mm lens, premium newsroom photo, no text, no logos, no watermark";
