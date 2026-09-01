@@ -1,4 +1,4 @@
-import {publishTo} from "./publish-lib.js";
+import {publishTo} from ".lib/publish-lib.js";
 const H=K=>({apikey:K,Authorization:"Bearer "+K,"Content-Type":"application/json",Prefer:"return=representation"});
 export default async function handler(req,res){
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=process.env;
