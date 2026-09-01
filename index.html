@@ -3,228 +3,337 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Image Studio — Poster Berita</title>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Radar Refinancing — Kandidat Dana Tunai</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#eef1f6;--card:#fff;--tx:#1c2430;--mut:#68738a;--blue:#1a6be0;--blue2:#0f56b8;--line:#e3e8f2;--warnbg:#fdf3e0;--warntx:#8a5a00}
-*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,system-ui,sans-serif}
-body{background:var(--bg);color:var(--tx)}
-header{background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
-header h1{font-size:1.05rem;font-weight:800;flex:1}
-.burger{background:#f2f5fa;border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:1rem}
-.live{background:#101826;color:#fff;border-radius:99px;padding:7px 14px;font-size:.75rem;font-weight:700;display:flex;align-items:center;gap:7px}
-.live .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px #22c55e33}
-.bell{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 11px;cursor:pointer;font-size:1rem}
-.bell .cnt{position:absolute;top:-6px;right:-6px;background:#e5484d;color:#fff;border-radius:99px;font-size:.65rem;font-weight:800;padding:2px 6px}
-.bellDrop{position:absolute;right:0;top:44px;width:320px;max-height:380px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px #0002;display:none;z-index:20}
-.bellDrop.open{display:block}
-.bellDrop div{padding:10px 12px;border-bottom:1px solid var(--line);font-size:.78rem;cursor:pointer}
-.bellDrop div:hover{background:#f4f7fc}
-.bellDrop .t{color:var(--mut);font-size:.68rem}
-.wrap{display:flex;gap:16px;padding:16px;max-width:1400px;margin:0 auto;align-items:flex-start}
-.side{width:360px;flex-shrink:0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 10px #0001}
-.side label{display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;color:var(--mut);margin:14px 0 6px;text-transform:uppercase}
-.side select,.side input[type=text]{width:100%;background:#f7f9fd;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.82rem;color:var(--tx)}
-.seg{display:flex;flex-wrap:wrap;gap:6px;background:#f2f5fa;border-radius:12px;padding:6px}
-.seg button{flex:1;min-width:80px;border:none;background:transparent;border-radius:9px;padding:8px 6px;font-size:.75rem;font-weight:700;color:var(--mut);cursor:pointer}
-.seg button.on{background:#fff;color:var(--blue);box-shadow:0 1px 5px #0002}
-.ratio{display:flex;gap:6px;background:#f2f5fa;border-radius:12px;padding:6px}
-.ratio button{flex:1;border:none;background:transparent;border-radius:9px;padding:8px 0;font-size:.75rem;font-weight:700;color:var(--mut);cursor:pointer}
-.ratio button.on{background:#fff;color:var(--blue);box-shadow:0 1px 5px #0002}
-.cta{width:100%;margin-top:16px;background:var(--blue);color:#fff;border:none;border-radius:12px;padding:13px;font-size:.9rem;font-weight:800;cursor:pointer}
-.cta:hover{background:var(--blue2)}
-.cta:disabled{opacity:.55;cursor:wait}
-.note{margin-top:12px;background:var(--warnbg);color:var(--warntx);border-radius:10px;padding:10px 12px;font-size:.72rem;line-height:1.5}
-.prev{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px}
-.prev canvas{max-width:100%;max-height:78vh;border-radius:10px;box-shadow:0 10px 34px #0003;background:#0b1220}
-.dl{background:#101826;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:.8rem;cursor:pointer}
-#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#101826;color:#fff;border-radius:12px;padding:12px 18px;font-size:.8rem;max-width:90vw;display:none;z-index:50;box-shadow:0 10px 30px #0006}
-@media(max-width:900px){.wrap{flex-direction:column}.side{width:100%}}
+:root{--bg:#0f172a;--card:#1e293b;--card2:#273449;--acc:#38bdf8;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--tx:#e2e8f0;--mut:#94a3b8}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:var(--bg);color:var(--tx);padding:16px;max-width:1600px;margin:0 auto}
+h1{font-size:1.3rem;color:var(--acc)} h2{font-size:1.02rem;margin-bottom:8px}
+.sub{color:var(--mut);font-size:.83rem;margin:4px 0 14px}
+.card{background:var(--card);border:1px solid #334155;border-radius:12px;padding:16px;margin-bottom:14px}
+.warn{background:#3a2a05;border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.85rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid #334155;border-radius:12px;padding:14px}
+.stat b{font-size:1.25rem;color:var(--acc);display:block}.stat span{color:var(--mut);font-size:.76rem}
+.drop{border:2px dashed #475569;border-radius:10px;padding:20px;text-align:center;color:var(--mut);cursor:pointer;transition:.2s}
+.drop.hover{border-color:var(--acc);background:#16324a}
+button{background:var(--acc);color:#04263a;border:none;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:.82rem}
+button.gray{background:#334155;color:var(--tx)} button.green{background:var(--ok)} button.red{background:var(--bad)}
+button:hover{filter:brightness(1.12)} button:disabled{opacity:.5;cursor:wait}
+input,select{background:var(--card2);border:1px solid #475569;color:var(--tx);border-radius:8px;padding:7px 9px;font-size:.82rem}
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.filters label{font-size:.72rem;color:var(--mut);display:block;margin-bottom:3px}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{background:#0b1220;color:var(--acc);padding:8px 6px;text-align:left;cursor:pointer;white-space:nowrap;position:sticky;top:0;z-index:2}
+td{padding:7px 6px;border-bottom:1px solid #2b3a52;vertical-align:top}
+tr:hover td{background:#16324a55}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.68rem;font-weight:700}
+.b-ok{background:#064e3b;color:var(--ok)}.b-warn{background:#533d05;color:var(--warn)}.b-bad{background:#5b1616;color:var(--bad)}.b-new{background:#1e3a8a;color:#93c5fd}
+.tblwrap{max-height:620px;overflow:auto;border-radius:8px;border:1px solid #334155}
+.mut{color:var(--mut);font-size:.72rem}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.authbox{max-width:400px;margin:40px auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.grid2 label{font-size:.72rem;color:var(--mut);display:block;margin-bottom:3px}
+.simres{background:#0b1220;border-radius:10px;padding:12px;margin-top:10px;font-size:.85rem;line-height:1.7}
+.modal{display:none;position:fixed;inset:0;background:#000a;z-index:50;align-items:center;justify-content:center;padding:14px}
+.modal.open{display:flex}
+.mbox{background:var(--card);border:1px solid #475569;border-radius:14px;padding:20px;max-width:560px;width:100%;max-height:92vh;overflow:auto}
+.hp{width:110px}.st{width:120px}.cat{width:130px}
+.topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header>
-  <button class="burger" onclick="document.querySelector('.side').scrollIntoView({behavior:'smooth'})">☰</button>
-  <h1>Image Studio</h1>
-  <div class="live"><span class="dot"></span><span id="liveBadge">Memuat RSS…</span></div>
-  <button class="bell" onclick="toggleBell()">🔔<span class="cnt" id="bellCnt">0</span>
-    <div class="bellDrop" id="bellDrop"></div>
-  </button>
-</header>
+<div id="warnBox" class="warn" style="display:none">⚠️ Aplikasi belum terhubung ke Supabase.</div>
 
-<div class="wrap">
-  <aside class="side">
-    <label>Pilih Berita (RSS Live)</label>
-    <select id="pilihBerita" onchange="pilihItem()"><option>Memuat berita…</option></select>
-
-    <label>Judul di Foto</label>
-    <input type="text" id="judul" placeholder="Judul yang akan dicetak di poster">
-
-    <label>Sumber Visual</label>
-    <div class="seg" id="segMode">
-      <button data-m="auto">Otomatis 80/20</button>
-      <button data-m="foto" class="on">Foto Asli</button>
-      <button data-m="ai">Generate AI</button>
-      <button data-m="upload">Upload</button>
-    </div>
-    <input type="file" id="fileUp" accept="image/*" hidden>
-
-    <label>Style</label>
-    <select id="style">
-      <option value="editorial" selected>editorial Bandung football</option>
-      <option value="bold">bold sport yellow</option>
-      <option value="minimal">minimal clean</option>
-      <option value="duotone">duotone biru</option>
-    </select>
-
-    <label>Aspect Ratio</label>
-    <div class="ratio" id="segRatio">
-      <button data-r="1:1">1:1</button><button data-r="4:5">4:5</button>
-      <button data-r="16:9">16:9</button><button data-r="9:16" class="on">9:16</button>
-    </div>
-
-    <button class="cta" id="btnBuat" onclick="buatPoster()">🎨 Buat Poster</button>
-    <div class="note">🖼️ Foto RSS milik media — kredit otomatis ditempel. Komersial = pastikan izin, atau pakai foto sendiri/AI. <b>Mode Foto Asli tidak pernah otomatis diganti AI.</b></div>
-  </aside>
-
-  <main class="prev">
-    <canvas id="cv" width="1080" height="1920"></canvas>
-    <button class="dl" onclick="unduh()">⬇ Unduh PNG</button>
-  </main>
+<div id="authBox" class="card authbox" style="display:none">
+  <h1>📡 Radar Refinancing & Dana Tunai</h1><p class="sub">Kandidat Menuju Lunas</p>
+  <div id="formLogin">
+    <div style="margin-bottom:8px"><label class="mut">Email</label><br><input id="lEmail" type="email" style="width:100%"></div>
+    <div style="margin-bottom:10px"><label class="mut">Password</label><br><input id="lPass" type="password" style="width:100%"></div>
+    <button style="width:100%" onclick="masuk()">Masuk</button>
+    <p class="mut" style="margin-top:10px"><a href="#" onclick="toggleForm('reset');return false" style="color:var(--acc)">Lupa password?</a> · <a href="#" onclick="toggleForm('daftar');return false" style="color:var(--acc)">Belum punya akun? Daftar</a></p>
+  </div>
+  <div id="formDaftar" style="display:none">
+    <div style="margin-bottom:8px"><label class="mut">Nama</label><br><input id="dNama" style="width:100%"></div>
+    <div style="margin-bottom:8px"><label class="mut">Email</label><br><input id="dEmail" type="email" style="width:100%"></div>
+    <div style="margin-bottom:10px"><label class="mut">Password</label><br><input id="dPass" type="password" style="width:100%"></div>
+    <button style="width:100%" onclick="daftar()">Buat Akun</button>
+    <p class="mut" style="margin-top:10px"><a href="#" onclick="toggleForm('login');return false" style="color:var(--acc)">Sudah punya akun? Masuk</a></p>
+  </div>
+  <div id="formReset" style="display:none">
+    <p class="sub">Masukkan email akun Anda. Kami akan mengirim tautan untuk mengatur ulang password.</p>
+    <div style="margin-bottom:10px"><label class="mut">Email</label><br><input id="rEmail" type="email" style="width:100%"></div>
+    <button style="width:100%" onclick="resetPass()">Kirim Tautan Reset</button>
+    <p class="mut" style="margin-top:10px"><a href="#" onclick="toggleForm('login');return false" style="color:var(--acc)">Kembali ke halaman masuk</a></p>
+  </div>
+  <p id="authMsg" class="mut" style="margin-top:10px"></p>
 </div>
-<div id="toast"></div>
+
+<div id="appBox" style="display:none">
+<div class="topbar">
+  <h1>📡 Radar Refinancing & Dana Tunai <span id="rtDot"><span class="dot" style="background:#64748b"></span></span></h1>
+  <div><span class="mut" id="userLabel"></span> <button class="gray" onclick="keluar()">Keluar</button></div>
+</div>
+<p class="sub">Online & realtime — semua device melihat data yang sama. Kandidat: lunas ≤ 6 bulan, riwayat bayar baik.</p>
+
+<div class="card">
+  <h2>1. Unggah / Sinkronkan Database Bulanan</h2>
+  <div id="drop" class="drop">Tarik file ke sini, atau klik untuk pilih file (.xlsx / .xls / .csv).<br>Data disimpan ke Supabase dan langsung terlihat di semua device.</div>
+  <input type="file" id="file" accept=".xlsx,.xls,.csv,.txt" hidden>
+  <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <span class="mut">Update terakhir: <b id="lastUp">memuat…</b> · <span id="uploadStat"></span></span>
+    <button class="red" onclick="hapusSemua()">Hapus Semua Data</button>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><b id="stTotal">0</b><span>Total kandidat sesuai filter aktif</span></div>
+  <div class="stat"><b id="stTenor">–</b><span>Rata² sisa tenor (bulan)</span></div>
+  <div class="stat"><b id="stKol">0</b><span>Kolektabilitas 1–2 (lancar / DPK)</span></div>
+  <div class="stat"><b id="stOS">Rp 0</b><span>Total outstanding kandidat</span></div>
+</div>
+
+<div class="card">
+  <h2>2. Filter Kandidat</h2>
+  <div class="filters">
+    <div><label>Sisa Tenor Maks (bulan)</label><input type="number" id="fSisa" value="6" min="1" style="width:80px" onchange="render()"></div>
+    <div><label>Kolektabilitas OJK</label>
+      <span style="font-size:.8rem"><input type="checkbox" id="k1" checked onchange="render()">Kol 1 <input type="checkbox" id="k2" checked onchange="render()">Kol 2 <input type="checkbox" id="k3" onchange="render()">Kol 3 <input type="checkbox" id="k4" onchange="render()">Kol 4 <input type="checkbox" id="k5" onchange="render()">Kol 5</span></div>
+    <div><label>Status Aset</label><select id="fAset" onchange="render()"><option value="Normal">Normal saja</option><option value="">Semua</option></select></div>
+    <div><label>Status Kontrak</label><select id="fKontrak" onchange="render()"><option value="">Semua</option><option value="LIV" selected>LIV</option><option value="ICP">ICP</option></select></div>
+    <div><label>Tahun Kendaraan Min</label><input type="number" id="fTahun" placeholder="mis. 2016" style="width:90px" onchange="render()"></div>
+    <div><label>Riwayat bayar baik</label><select id="fRiwayat" onchange="render()"><option value="1" selected>Ya (tanpa tunggakan berarti)</option><option value="0">Semua</option></select></div>
+    <div><label>Cari Nama / No. Kontrak</label><input id="fCari" placeholder="ketik…" oninput="render()"></div>
+    <button class="gray" onclick="resetFilter()">Reset ke Default</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>3. Daftar Kandidat <span class="mut" id="cnt"></span></h2>
+  <p class="mut" style="margin-bottom:8px">Klik kolom untuk mengurutkan · isi No. HP untuk tombol WA · ubah <b>Status</b> & <b>Catatan</b> — tersimpan realtime untuk semua pengguna.</p>
+  <div style="margin-bottom:8px"><button class="gray" onclick="exportCSV()">⬇ Ekspor CSV</button></div>
+  <div class="tblwrap"><table>
+    <thead><tr>
+      <th onclick="sortBy('nama')">Debitur</th><th onclick="sortBy('ao')">Sales / AO</th>
+      <th onclick="sortBy('kendaraan')">Kendaraan</th><th onclick="sortBy('sisa')">Sisa Tenor</th>
+      <th onclick="sortBy('kol')">Kol.</th><th onclick="sortBy('outstanding')">Outstanding</th>
+      <th onclick="sortBy('angsuran')">Angsuran</th><th onclick="sortBy('skor')">Prioritas</th>
+      <th>Kontak</th><th>Status Pipeline</th><th>Notifikasi</th><th>Aksi</th>
+    </tr></thead>
+    <tbody id="tbody"><tr><td colspan="12" style="text-align:center;padding:30px" class="mut">Memuat data…</td></tr></tbody>
+  </table></div>
+</div>
+
+<div class="card">
+  <h2>4. Kirim Ringkasan ke Sales / AO</h2>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <select id="aoSelect" style="min-width:240px" onchange="renderAO()"><option value="">Semua Sales / AO</option></select>
+    <input id="aoHp" placeholder="No. HP AO (08xx)" style="width:140px">
+    <button class="green" onclick="kirimAO()">🟢 Kirim Ringkasan via WhatsApp</button>
+    <button class="gray" onclick="salinAO()">📋 Salin Ringkasan Teks</button>
+  </div>
+  <div id="aoList" class="mut" style="margin-top:10px;font-size:.82rem;white-space:pre-wrap"></div>
+</div>
+</div>
+
+<div class="modal" id="modal"><div class="mbox">
+  <h2>Simulasi Kredit</h2><div id="simHead" class="mut" style="margin-bottom:8px"></div>
+  <div class="grid2">
+    <div><label>Tambahan Dana Tunai (Rp)</label><input type="number" id="sTambahan" value="10000000" oninput="hitungSim()"></div>
+    <div><label>Tenor Baru (bulan)</label><input type="number" id="sTenor" value="36" oninput="hitungSim()"></div>
+    <div><label>Suku Bunga Flat (% p.a.)</label><input type="number" id="sBunga" value="12" step="0.1" oninput="hitungSim()"></div>
+    <div><label>Biaya Admin (Rp)</label><input type="number" id="sAdmin" value="1000000" oninput="hitungSim()"></div>
+    <div><label>Asuransi (tetap Rp 1.700.000 jika Yes)</label>
+      <select id="sAsuransi" onchange="hitungSim()"><option value="0">No — Rp 0</option><option value="1">Yes — Rp 1.700.000</option></select></div>
+  </div>
+  <div class="simres" id="simRes"></div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="green" onclick="kirimSimWA()">🟢 Kirim Simulasi via WA</button>
+    <button class="gray" onclick="tutupModal()">Tutup</button>
+  </div>
+</div></div>
 
 <script>
-// ================== KONFIG SUMBER RSS ==================
-const FEEDS=[
-['Persib.co.id','https://www.persib.co.id/feed'],['Kompas Bola','https://www.kompas.com/feed/bola'],
-['Detik Sport','https://feed.detik.com/index.php/detik/olahraga'],['Antara Bola','https://www.antaranews.com/rss/bola'],
-['Tribun Jabar','https://jabar.tribunnews.com/rss'],['Bola.com','https://www.bola.com/feed'],
-['Bola.net','https://www.bola.net/feed'],['CNN Olahraga','https://www.cnnindonesia.com/olahraga/rss'],
-['Okezone Bola','https://bola.okezone.com/rss'],['Sindonews Bola','https://bola.sindonews.com/rss'],
-['Liputan6','https://www.liputan6.com/rss'],['Skor.id','https://skor.id/feed'],
-['Republika Bola','https://www.republika.co.id/rss/bola'],['VIVA Bola','https://www.viva.co.id/rss/bola'],
-['IDN Times Bola','https://www.idntimes.com/feed/bola'],['Suara Bola','https://www.suara.com/rss/bola'],
-['Pikiran Rakyat','https://www.pikiran-rakyat.com/rss'],['Galamedia','https://www.galamedia.com/rss'],
-['AyoBandung','https://www.ayobandung.com/rss'],['RMOL Jabar','https://www.rmoljabar.com/rss'],
-['Tribun Bola','https://bola.tribunnews.com/rss'],['Football Tribe','https://footballtribe.com/indonesia/feed'],
-['Tempo','https://www.tempo.co/rss/bola'],['Goal ID','https://www.goal.com/id/feed'],
-['ESPN Soccer','https://www.espn.com/espn/rss/soccer/news']];
-const RATIOS={'1:1':[1080,1080],'4:5':[1080,1350],'16:9':[1600,900],'9:16':[1080,1920]};
-const STYLES={
- editorial:{accent:'#2f8bff',filter:'saturate(1.15) contrast(1.08)',tint:null,fs:.085,prompt:'professional sports editorial photograph, football stadium atmosphere, dramatic floodlights'},
- bold:{accent:'#ffd400',filter:'contrast(1.28) saturate(1.35)',tint:null,fs:.095,prompt:'high energy sports poster photo, vivid colors, stadium crowd, dramatic light'},
- minimal:{accent:'#ffffff',filter:'none',tint:null,fs:.06,prompt:'clean minimalist football photography, soft light, simple composition'},
- duotone:{accent:'#7db4ff',filter:'grayscale(1) contrast(1.25)',tint:'#0b3d91',fs:.085,prompt:'moody blue duotone football stadium photography'}};
-let ITEMS=[],MODE='foto',RATIO='9:16',UPLOAD=null;
+// ================== KONFIGURASI SUPABASE (SUDAH TERISI) ==================
+const SUPABASE_URL='https://lzsuyjahxfkboohsvkzt.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_zShRt7--Ju2-DZaZ5scCw_daIkhhNaN';
+// ========================================================================
 const $=id=>document.getElementById(id);
-const prox=u=>'https://wsrv.nl/?url='+encodeURIComponent(u);
-function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._x);t._x=setTimeout(()=>t.style.display='none',4200);}
-function loadImg(src,ms=15000){return new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';
- const to=setTimeout(()=>{i.src='';rej(new Error('timeout'));},ms);
- i.onload=()=>{clearTimeout(to);res(i);};i.onerror=()=>{clearTimeout(to);rej(new Error('gagal memuat gambar'));};i.src=src;});}
-function itemImage(el){let u='';const enc=el.getElementsByTagName('enclosure')[0];if(enc)u=enc.getAttribute('url')||'';
- if(!u){const mc=el.getElementsByTagName('media:content')[0];if(mc)u=mc.getAttribute('url')||'';}
- if(!u){const mt=el.getElementsByTagName('media:thumbnail')[0];if(mt)u=mt.getAttribute('url')||'';}
- if(!u){const d=el.getElementsByTagName('description')[0];const m=/<img[^>]+src=["']([^"']+)/i.exec(d?d.textContent:'');if(m)u=m[1];}
- return u||'';}
+const rp=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n||0);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KONFIG_OK=!SUPABASE_URL.startsWith('ISI_')&&!SUPABASE_ANON_KEY.startsWith('ISI_');
+if(!KONFIG_OK)$('warnBox').style.display='block';
+const sb=(KONFIG_OK&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+const STATUSES=['Baru','Dihubungi','Minat','Proses Kredit','Akad / Eksekusi','Ditolak','Tidak Respon'];
+let KONTRAK=[],STATUS={},UPLOAD_TERAKHIR=null,USER=null,SORT={key:null,dir:1},SIMD=null,rtTimer=null;
 
-// ================== MUAT RSS ==================
-async function muatRSS(){
- const res=await Promise.allSettled(FEEDS.map(async([name,url])=>{
-  const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url),{signal:AbortSignal.timeout(12000)});
-  if(!r.ok)throw 0;const txt=await r.text();
-  const xml=new DOMParser().parseFromString(txt,'text/xml');
-  if(xml.getElementsByTagName('parsererror').length)throw 0;
-  const its=[...xml.getElementsByTagName('item')].slice(0,10).map(el=>{
-   const g=t=>{const n=el.getElementsByTagName(t)[0];return n?n.textContent:'';};
-   return{title:(g('title')||'').trim(),link:g('link'),date:new Date(g('pubDate')||Date.now()),image:itemImage(el),source:name};
-  }).filter(x=>x.title);
-  if(!its.length)throw 0;return its;}));
- let all=[],ok=0;res.forEach(r=>{if(r.status==='fulfilled'){ok++;all.push(...r.value);}});
- all.sort((a,b)=>b.date-a.date);ITEMS=all;
- $('liveBadge').textContent=`LIVE · ${ITEMS.length} berita · ${ok} sumber RSS`;
- const sel=$('pilihBerita');
- if(!ITEMS.length){sel.innerHTML='<option>Semua sumber RSS gagal dimuat</option>';toast('⚠️ RSS gagal dimuat. Cek koneksi / coba refresh.');return;}
- sel.innerHTML=ITEMS.map((it,i)=>`<option value="${i}">[BERITA] ${it.title.slice(0,70)}</option>`).join('');
- pilihItem();notif();}
-function pilihItem(){const it=ITEMS[+$('pilihBerita').value||0];if(it)$('judul').value=it.title;}
-function notif(){const fresh=ITEMS.filter(i=>Date.now()-i.date<48*36e5).slice(0,15);
- $('bellCnt').textContent=fresh.length;
- $('bellDrop').innerHTML=fresh.length?fresh.map(i=>{const idx=ITEMS.indexOf(i);
-  return `<div onclick="pilihDariBell(${idx})"><b>${i.title.slice(0,80)}</b><div class="t">${i.source} · ${i.date.toLocaleString('id-ID')}</div></div>`;}).join(''):'<div>Tidak ada berita baru.</div>';}
-function pilihDariBell(i){$('pilihBerita').value=i;pilihItem();$('bellDrop').classList.remove('open');}
-function toggleBell(){$('bellDrop').classList.toggle('open');}
+// ================== AUTH ==================
+function toggleForm(f){['login','daftar','reset'].forEach(x=>$('form'+x[0].toUpperCase()+x.slice(1)).style.display=x===f?'block':'none');$('authMsg').textContent='';}
+async function masuk(){const{error}=await sb.auth.signInWithPassword({email:$('lEmail').value.trim(),password:$('lPass').value});$('authMsg').textContent=error?('Gagal: '+error.message):'Masuk…';}
+async function daftar(){const{data,error}=await sb.auth.signUp({email:$('dEmail').value.trim(),password:$('dPass').value,options:{data:{nama:$('dNama').value.trim()}}});
+ $('authMsg').textContent=error?('Gagal: '+error.message):(data.session?'Akun dibuat! Silakan masuk.':'Akun dibuat. Cek email untuk konfirmasi, lalu masuk.');}
+async function resetPass(){const{error}=await sb.auth.resetPasswordForEmail($('rEmail').value.trim(),{redirectTo:location.origin});$('authMsg').textContent=error?('Gagal: '+error.message):'Tautan reset dikirim ke email Anda.';}
+async function keluar(){await sb.auth.signOut();}
+if(sb)sb.auth.onAuthStateChange((ev,session)=>{USER=session?.user||null;
+ if(USER){$('authBox').style.display='none';$('appBox').style.display='block';$('userLabel').textContent=USER.email;muatData();pasangRealtime();}
+ else{$('authBox').style.display='block';$('appBox').style.display='none';}});
 
-// ================== KONTROL MODE & RATIO ==================
-document.querySelectorAll('#segMode button').forEach(b=>b.onclick=()=>{
- document.querySelectorAll('#segMode button').forEach(x=>x.classList.remove('on'));b.classList.add('on');MODE=b.dataset.m;
- if(MODE==='upload')$('fileUp').click();});
-$('fileUp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
- r.onload=ev=>{UPLOAD=ev.target.result;toast('✅ Gambar upload siap dipakai.');};r.readAsDataURL(f);};
-document.querySelectorAll('#segRatio button').forEach(b=>b.onclick=()=>{
- document.querySelectorAll('#segRatio button').forEach(x=>x.classList.remove('on'));b.classList.add('on');RATIO=b.dataset.r;});
+// ================== DATA & REALTIME ==================
+async function muatData(){if(!USER)return;
+ const rk=await sb.from('kontrak').select('*');
+ if(rk.error){alert('Gagal memuat: '+rk.error.message);return;}
+ const rs=await sb.from('status_kandidat').select('*');
+ const ru=await sb.from('uploads').select('waktu').order('waktu',{ascending:false}).limit(1);
+ KONTRAK=rk.data||[];STATUS=Object.fromEntries((rs.data||[]).map(s=>[s.agr,s]));
+ UPLOAD_TERAKHIR=ru.data&&ru.data[0]?new Date(ru.data[0].waktu):null;
+ $('lastUp').textContent=UPLOAD_TERAKHIR?UPLOAD_TERAKHIR.toLocaleString('id-ID')+' ('+KONTRAK.length+' kontrak)':'belum ada data';
+ render();}
+function pasangRealtime(){sb.channel('rt-all')
+ .on('postgres_changes',{event:'*',schema:'public',table:'kontrak'},debounceMuat)
+ .on('postgres_changes',{event:'*',schema:'public',table:'status_kandidat'},debounceMuat)
+ .on('postgres_changes',{event:'*',schema:'public',table:'uploads'},debounceMuat)
+ .subscribe(st=>{if(st==='SUBSCRIBED')$('rtDot').innerHTML='<span class="dot" style="background:var(--ok)"></span>';});}
+function debounceMuat(){clearTimeout(rtTimer);rtTimer=setTimeout(muatData,600);}
 
-// ================== BUAT POSTER ==================
-async function buatPoster(){
- const it=ITEMS[+$('pilihBerita').value||0];if(!it){toast('Pilih berita dulu.');return;}
- const judul=$('judul').value.trim()||it.title;
- const[W,H]=RATIOS[RATIO];let img=null,kredit=it.source;
- $('btnBuat').disabled=true;$('btnBuat').textContent='Membuat…';
- try{
-  if(MODE==='foto'){
-   // ✅ PERBAIKAN: Foto Asli TIDAK pernah fallback ke AI.
-   if(!it.image)throw new Error('RSS berita ini tidak menyertakan foto. Gunakan mode Upload atau Generate AI.');
-   img=await loadImg(prox(it.image)).catch(()=>null);
-   if(!img)throw new Error('Foto asli gagal dimuat (server media memblokir). Mode Foto Asli tidak memakai AI — coba mode Upload/Generate AI.');
-  }else if(MODE==='ai'){
-   img=await generateAI(judul,W,H);kredit='AI-generated';
-  }else if(MODE==='upload'){
-   if(!UPLOAD)throw new Error('Upload gambar dulu (pilih menu Upload).');
-   img=await loadImg(UPLOAD);kredit='Dok. pribadi';
-  }else{ // Otomatis 80/20
-   if(it.image&&Math.random()<0.8)img=await loadImg(prox(it.image)).catch(()=>null);
-   if(!img){img=await generateAI(judul,W,H);kredit='AI-generated';}
-  }
-  gambar(img,judul,kredit,W,H);
- }catch(e){toast('⚠️ '+e.message);}
- $('btnBuat').disabled=false;$('btnBuat').textContent='🎨 Buat Poster';}
-function generateAI(judul,W,H){const st=STYLES[$('style').value];
- const prompt=`${st.prompt}, indonesian football, ${judul.slice(0,60)}, no text, no watermark`;
- return loadImg(`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${W}&height=${H}&nologo=true&seed=${Math.floor(Math.random()*1e6)}`,30000);}
+// ================== PARSING FILE ==================
+const norm=k=>String(k).toLowerCase().replace(/[^a-z0-9]/g,'');
+function pick(r,...names){for(const k in r){if(names.includes(norm(k)))return r[k];}return '';}
+function parseNum(v){if(typeof v==='number')return v;if(v==null)return 0;let s=String(v).replace(/[^0-9.,-]/g,'');if(!s)return 0;
+ if(s.includes(',')&&s.includes('.')){s=(s.lastIndexOf('.')>s.lastIndexOf(','))?s.replace(/,/g,''):s.replace(/\./g,'').replace(',','.');}
+ else if(s.includes(',')){s=/,\d{3}$/.test(s)?s.replace(/,/g,''):s.replace(',','.');}
+ else if((s.match(/\./g)||[]).length>1){s=s.replace(/\./g,'');}
+ return parseFloat(s)||0;}
+function mapRow(r){return{
+ agr:String(pick(r,'agreementno')).replace(/^'/,'').trim(),
+ nama:pick(r,'customername'),branch:pick(r,'branch'),kota:pick(r,'city'),
+ ao:String(pick(r,'namaao')||pick(r,'namaaopertama')||'').trim(),
+ kendaraan:pick(r,'assetcode'),tahun:parseNum(pick(r,'manufacturingyear')),
+ sisa:Math.max(0,Math.round(parseNum(pick(r,'sisatenor')))),tenor:parseNum(pick(r,'tenor')),
+ jatuh_tempo:pick(r,'maturitydate'),kol:parseNum(pick(r,'collectibilityidojk')),slik:pick(r,'statusslik'),
+ aset_status:pick(r,'assetstatus'),kontrak_status:pick(r,'contractstatus'),
+ outstanding:parseNum(pick(r,'outstandingprincipal')),
+ angsuran:parseNum(pick(r,'installlmentamount','installmentamountpertama')),
+ bunga:parseNum(pick(r,'effectiverate')),hari_tunggakan:parseNum(pick(r,'daysoverdue')),
+ advance:pick(r,'advancearrear')};}
 
-// ================== GAMBAR POSTER ==================
-function gambar(img,judul,kredit,W,H){
- const cv=$('cv');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');const st=STYLES[$('style').value];
- ctx.filter=st.filter||'none';
- const iw=img.naturalWidth||W,ih=img.naturalHeight||H,s=Math.max(W/iw,H/ih),dw=iw*s,dh=ih*s;
- ctx.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh);ctx.filter='none';
- if(st.tint){ctx.globalAlpha=.28;ctx.fillStyle=st.tint;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
- const g=ctx.createLinearGradient(0,H*.45,0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.88)');
- ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
- const M=W*.07;let fs=Math.round(W*st.fs);ctx.textBaseline='top';
- let lines;for(let k=0;k<4;k++){ctx.font=`900 ${fs}px 'Archivo Black','Arial Black',sans-serif`;
-  lines=wrap(ctx,judul.toUpperCase(),W-M*2);if(lines.length<=6)break;fs=Math.round(fs*.88);}
- const lh=fs*1.18,th=lines.length*lh;
- const y0=H-M-W*.05-th;
- ctx.fillStyle=st.accent;ctx.fillRect(M,y0-W*.03,W*.16,W*.012);
- ctx.fillStyle='#fff';lines.forEach((l,i)=>ctx.fillText(l,M,y0+i*lh));
- ctx.font=`600 ${Math.round(W*.022)}px Inter,sans-serif`;ctx.fillStyle='rgba(255,255,255,.85)';
- ctx.fillText('Foto: '+kredit,M,H-M+ -W*.005);
- ctx.textAlign='right';ctx.fillText('Image Studio',W-M,H-M-W*.005);ctx.textAlign='left';}
-function wrap(ctx,text,maxW){const w=text.split(/\s+/),lines=[];let cur='';
- for(const x of w){const t=cur?cur+' '+x:x;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=x;}else cur=t;}
- if(cur)lines.push(cur);return lines;}
-function unduh(){const a=document.createElement('a');a.download='poster-'+Date.now()+'.png';a.href=$('cv').toDataURL('image/png');a.click();}
+$('drop').onclick=()=>$('file').click();
+$('file').onchange=e=>{if(e.target.files[0])handleFile(e.target.files[0]);e.target.value='';};
+['dragover','dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();
+ $('drop').classList.toggle('hover',ev==='dragover');if(ev==='drop'&&e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);}));
+function handleFile(f){const ext=f.name.split('.').pop().toLowerCase(),rd=new FileReader();
+ if(ext==='csv'||ext==='txt'){rd.onload=e=>parseDelimited(e.target.result,f.name);rd.readAsText(f);}
+ else{rd.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+  simpanKeSupabase(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}),f.name);}
+  catch(err){alert('Gagal membaca file: '+err.message);}};rd.readAsArrayBuffer(f);}}
+function parseDelimited(txt,namaFile){const lines=txt.split(/\r?\n/).filter(l=>l.trim());if(!lines.length)return;
+ const d=((lines[0].match(/\|/g)||[]).length>3)?'|':(((lines[0].match(/;/g)||[]).length>3)?';':',');
+ const head=lines[0].split(d),arr=[];
+ for(let i=1;i<lines.length;i++){const c=lines[i].split(d),o={};head.forEach((h,j)=>o[h.trim()]=(c[j]||'').trim());arr.push(o);}
+ simpanKeSupabase(arr,namaFile);}
+async function simpanKeSupabase(arr,namaFile){
+ const rows=arr.map(mapRow).filter(d=>d.nama&&d.agr);
+ if(!rows.length){alert('Tidak ada baris data yang dikenali.');return;}
+ $('uploadStat').textContent='Mengunggah 0/'+rows.length+'…';
+ for(let i=0;i<rows.length;i+=500){
+  const{error}=await sb.from('kontrak').upsert(rows.slice(i,i+500),{onConflict:'agr'});
+  if(error){alert('Gagal upload: '+error.message);return;}
+  $('uploadStat').textContent='Mengunggah '+Math.min(i+500,rows.length)+'/'+rows.length+'…';}
+ await sb.from('uploads').insert({nama_file:namaFile,jumlah:rows.length,oleh:USER.id});
+ $('uploadStat').textContent='Selesai ✅';muatData();}
+async function hapusSemua(){if(!confirm('Hapus SEMUA data kontrak dari database?'))return;
+ const{error}=await sb.from('kontrak').delete().neq('agr','');
+ alert(error?('Gagal: '+error.message):'Semua data dihapus.');muatData();}
 
-muatRSS();
-gambarPlaceholder();
-function gambarPlaceholder(){const cv=$('cv'),ctx=cv.getContext('2d');
- const g=ctx.createLinearGradient(0,0,0,1920);g.addColorStop(0,'#0b1220');g.addColorStop(1,'#12224a');
- ctx.fillStyle=g;ctx.fillRect(0,0,1080,1920);
- ctx.fillStyle='#2f8bff';ctx.fillRect(76,1500,180,14);
- ctx.fillStyle='#fff';ctx.font="900 92px 'Archivo Black','Arial Black',sans-serif";
- ['PILIH BERITA,','LALU TEKAN','BUAT POSTER'].forEach((l,i)=>ctx.fillText(l,76,1560+i*110));}
+// ================== LOGIKA KANDIDAT ==================
+function riwayatBaik(d){return d.kol>=1&&d.kol<=2&&(d.hari_tunggakan||0)<=30&&!/macet|hapus|write/i.test(d.slik||'');}
+function skor(d){let p=0;if(d.kol===1)p+=40;else if(d.kol===2)p+=25;if(String(d.advance).toLowerCase()==='advance')p+=20;
+ if(!(d.hari_tunggakan))p+=20;if(d.sisa<=3)p+=10;else if(d.sisa<=6)p+=5;if((d.tahun||0)>=2018)p+=5;return p;}
+function getFiltered(){const smax=+$('fSisa').value||6,
+ kset=[$('k1').checked?1:0,$('k2').checked?2:0,$('k3').checked?3:0,$('k4').checked?4:0,$('k5').checked?5:0].filter(Boolean),
+ aset=$('fAset').value,kon=$('fKontrak').value,th=$('fTahun').value?+$('fTahun').value:0,
+ hist=$('fRiwayat').value==='1',q=$('fCari').value.toLowerCase();
+ return KONTRAK.filter(d=>d.sisa<=smax&&d.sisa>0&&kset.includes(d.kol)&&(!aset||d.aset_status===aset)&&(!kon||d.kontrak_status===kon)&&(!th||(d.tahun||0)>=th)&&(!hist||riwayatBaik(d))&&(!q||(d.nama||'').toLowerCase().includes(q)||(d.agr||'').toLowerCase().includes(q)));}
+function sortBy(k){SORT={key:k,dir:SORT.key===k?-SORT.dir:1};render();}
+function resetFilter(){$('fSisa').value=6;$('k1').checked=$('k2').checked=true;$('k3').checked=$('k4').checked=$('k5').checked=false;
+ $('fAset').value='Normal';$('fKontrak').value='LIV';$('fTahun').value='';$('fRiwayat').value='1';$('fCari').value='';render();}
+
+// ================== RENDER ==================
+function render(){let rows=getFiltered();
+ if(SORT.key)rows=[...rows].sort((a,b)=>{const x=SORT.key==='skor'?skor(a):a[SORT.key],y=SORT.key==='skor'?skor(b):b[SORT.key];
+  return (typeof x==='number'&&typeof y==='number'?x-y:String(x??'').localeCompare(String(y??'')))*SORT.dir;});
+ $('stTotal').textContent=rows.length;
+ $('stTenor').textContent=rows.length?(rows.reduce((s,d)=>s+d.sisa,0)/rows.length).toFixed(1)+' bulan':'–';
+ $('stKol').textContent=rows.filter(d=>d.kol<=2).length+' kandidat';
+ $('stOS').textContent=rp(rows.reduce((s,d)=>s+(+d.outstanding||0),0));
+ $('cnt').textContent='('+rows.length+' kandidat)';
+ const aos=[...new Set(KONTRAK.map(d=>d.ao).filter(Boolean))].sort();
+ $('aoSelect').innerHTML='<option value="">Semua Sales / AO ('+KONTRAK.length+' data)</option>'+aos.map(a=>`<option>${esc(a)}</option>`).join('');
+ if(!rows.length){$('tbody').innerHTML='<tr><td colspan="12" style="text-align:center;padding:30px" class="mut">Tidak ada kandidat sesuai filter. Unggah file database atau longgarkan filter.</td></tr>';renderAO();return;}
+ const hariIni=UPLOAD_TERAKHIR?UPLOAD_TERAKHIR.toDateString():null;
+ $('tbody').innerHTML=rows.map(d=>{const st=STATUS[d.agr]||{},sc=skor(d),
+  isNew=hariIni&&new Date(d.created_at).toDateString()===hariIni,
+  pr=sc>=80?['Tinggi','b-ok']:sc>=55?['Sedang','b-warn']:['Rendah','b-bad'],
+  kb=d.kol<=1?['Kol '+d.kol,'b-ok']:d.kol===2?['Kol 2','b-warn']:['Kol '+d.kol,'b-bad'];
+  return `<tr>
+  <td><b>${esc(d.nama)}</b><br><span class="mut">${esc(d.agr)} · ${esc(d.branch)}</span>${isNew?' <span class="badge b-new">BARU</span>':''}<br><span class="mut">${esc(d.slik)}</span></td>
+  <td>${esc(d.ao)}</td>
+  <td>${esc(d.kendaraan)}<br><span class="mut">${d.tahun||'–'} · ${esc(d.aset_status)}</span></td>
+  <td><b>${d.sisa} bln</b><br><span class="mut">JT: ${esc(d.jatuh_tempo)}</span></td>
+  <td><span class="badge ${kb[1]}">${kb[0]}</span></td>
+  <td>${rp(d.outstanding)}</td><td>${rp(d.angsuran)}</td>
+  <td><span class="badge ${pr[1]}">${pr[0]}</span><br><span class="mut">skor ${sc}</span></td>
+  <td><input class="hp" placeholder="08xx" value="${esc(d.hp||'')}" onchange="simpanHp('${esc(d.agr)}',this.value)"></td>
+  <td><select class="st" onchange="simpanStatus('${esc(d.agr)}',this.value)">${STATUSES.map(s=>`<option${(st.status||'Baru')===s?' selected':''}>${s}</option>`).join('')}</select><br>
+   <input class="cat" style="margin-top:4px" placeholder="Catatan…" value="${esc(st.catatan||'')}" onchange="simpanCatatan('${esc(d.agr)}',this.value)">
+   <div class="mut">${st.updated_at?('upd: '+new Date(st.updated_at).toLocaleDateString('id-ID')):''}</div></td>
+  <td><button class="green" onclick="waDebtor('${esc(d.agr)}')">WA</button> <button class="gray" onclick="emailDebtor('${esc(d.agr)}')">Email</button></td>
+  <td><button onclick="bukaSim('${esc(d.agr)}')">Detail</button></td></tr>`;}).join('');
+ renderAO();}
+
+// ================== SIMPAN PERUBAHAN (REALTIME) ==================
+async function simpanHp(agr,hp){await sb.from('kontrak').update({hp:hp.trim(),updated_at:new Date().toISOString()}).eq('agr',agr);}
+async function simpanStatus(agr,status){await sb.from('status_kandidat').upsert({agr,status,updated_by:USER.id,updated_at:new Date().toISOString()},{onConflict:'agr'});}
+async function simpanCatatan(agr,catatan){const st=STATUS[agr]||{};
+ await sb.from('status_kandidat').upsert({agr,catatan,status:st.status||'Baru',updated_by:USER.id,updated_at:new Date().toISOString()},{onConflict:'agr'});}
+
+// ================== NOTIFIKASI & SIMULASI ==================
+const waNum=h=>{h=String(h).replace(/\D/g,'');return h.startsWith('0')?'62'+h.slice(1):h;};
+const waOpen=(hp,msg)=>window.open('https://wa.me/'+waNum(hp)+'?text='+encodeURIComponent(msg),'_blank');
+function msgDebtor(d){return `Halo Bpk/Ibu ${d.nama} 👋\n\nPerkenalkan, kami dari tim ${d.branch}. Kontrak Anda ${d.agr} (angsuran saat ini ${rp(d.angsuran)}) akan lunas sekitar ${d.jatuh_tempo}.\n\nSebagai nasabah dengan riwayat pembayaran yang baik, Anda berkesempatan mendapat penawaran REFINANCING / DANA TUNAI dengan proses cepat tanpa appraisal ulang.\n\nApakah berkenan kami jelaskan simulasinya?`;}
+function waDebtor(agr){const d=KONTRAK.find(x=>x.agr===agr);if(!d.hp){alert('Isi No. HP debitur pada kolom Kontak terlebih dahulu.');return;}waOpen(d.hp,msgDebtor(d));}
+function emailDebtor(agr){const d=KONTRAK.find(x=>x.agr===agr);window.open('mailto:?subject='+encodeURIComponent('Penawaran Refinancing — '+d.agr)+'&body='+encodeURIComponent(msgDebtor(d)));}
+function bukaSim(agr){SIMD=KONTRAK.find(x=>x.agr===agr);
+ $('simHead').innerHTML=`<b>${esc(SIMD.nama)}</b> · ${esc(SIMD.agr)}<br>Outstanding: <b>${rp(SIMD.outstanding)}</b> · Angsuran saat ini: ${rp(SIMD.angsuran)} · Sisa ${SIMD.sisa} bln`;
+ $('modal').classList.add('open');hitungSim();}
+function tutupModal(){$('modal').classList.remove('open');}
+function nilaiSim(){const tam=+$('sTambahan').value||0,ten=+$('sTenor').value||12,bg=(+$('sBunga').value||0)/100,
+ adm=+$('sAdmin').value||0,premi=$('sAsuransi').value==='1'?1700000:0,
+ pokok=(+SIMD.outstanding||0)+tam+adm+premi,total=pokok*(1+bg*ten/12);
+ return{pokok,premi,total,ang:Math.round(total/ten),ten};}
+function hitungSim(){const s=nilaiSim();
+ $('simRes').innerHTML=`Pokok Pinjaman Total: <b>${rp(s.pokok)}</b><br>Premi Asuransi: ${rp(s.premi)}<br>Total Kewajiban: ${rp(s.total)}<br><b>Angsuran Baru: ${rp(s.ang)} / bulan × ${s.ten} bln</b><br><span class="mut">Angsuran saat ini: ${rp(SIMD.angsuran)} → selisih ${rp(s.ang-SIMD.angsuran)}</span>`;}
+function kirimSimWA(){if(!SIMD.hp){alert('Isi No. HP debitur di tabel terlebih dahulu.');return;}const s=nilaiSim();
+ waOpen(SIMD.hp,msgDebtor(SIMD)+`\n\n📊 SIMULASI REFINANCING:\n• Dana tambahan: ${rp(+$('sTambahan').value||0)}\n• Tenor: ${s.ten} bulan\n• Angsuran baru: ${rp(s.ang)}/bulan\n\nMinat? Kami bantu prosesnya 🙏`);}
+
+// ================== RINGKASAN AO & EKSPOR ==================
+function teksAO(){const ao=$('aoSelect').value||'Semua Sales / AO',
+ list=getFiltered().filter(d=>!$('aoSelect').value||d.ao===$('aoSelect').value);
+ return `📡 *Ringkasan Kandidat Refinancing — Radar Dana Tunai*\nAO: ${ao}\nUpdate: ${$('lastUp').textContent}\nTotal kandidat: ${list.length}\n\n`+
+ list.map((d,i)=>`${i+1}. ${d.nama}\n   ${d.agr} | sisa ${d.sisa} bln (JT ${d.jatuh_tempo}) | Kol ${d.kol} | OS ${rp(d.outstanding)} | angs ${rp(d.angsuran)} | status: ${(STATUS[d.agr]||{}).status||'Baru'}`).join('\n')+`\n\nMohon ditindaklanjuti sebelum kontrak lunas 🙏`;}
+function renderAO(){const ao=$('aoSelect').value,list=getFiltered().filter(d=>!ao||d.ao===ao);
+ $('aoList').textContent=list.length?list.map((d,i)=>`${i+1}. ${d.nama} — ${d.agr} — sisa ${d.sisa} bln — Kol ${d.kol} — OS ${rp(d.outstanding)} — angs ${rp(d.angsuran)} — [${(STATUS[d.agr]||{}).status||'Baru'}]`).join('\n'):'(tidak ada kandidat)';}
+function kirimAO(){const hp=$('aoHp').value.trim();if(!hp){alert('Isi nomor WhatsApp AO.');return;}waOpen(hp,teksAO());}
+function salinAO(){navigator.clipboard.writeText(teksAO()).then(()=>alert('Ringkasan teks disalin.'));}
+function exportCSV(){const rows=getFiltered();if(!rows.length){alert('Tidak ada data.');return;}
+ const H=['CustomerName','AgreementNo','Branch','NamaAO','Kendaraan','Tahun','SisaTenor','MaturityDate','Kol_OJK','StatusSlik','AssetStatus','ContractStatus','Outstanding','Installment','HariTunggakan','Skor','StatusPipeline','Catatan'];
+ const csv=[H.join(';')].concat(rows.map(d=>{const st=STATUS[d.agr]||{};
+  return [d.nama,d.agr,d.branch,d.ao,d.kendaraan,d.tahun,d.sisa,d.jatuh_tempo,d.kol,d.slik,d.aset_status,d.kontrak_status,d.outstanding,d.angsuran,d.hari_tunggakan,skor(d),st.status||'Baru',st.catatan||''].map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';');})).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='kandidat_refinancing.csv';a.click();}
+$('modal').addEventListener('click',e=>{if(e.target===$('modal'))tutupModal();});
 </script>
 </body>
 </html>
