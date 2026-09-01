@@ -617,7 +617,7 @@ document.addEventListener("click",e=>{if(e.target.closest('[data-action="scSave"
 (async()=>{
  const up=new URLSearchParams(location.search);
  if(up.get("connected")){toast("🔗 "+esc(up.get("connected"))+" TERHUBUNG (REAL).","ok");history.replaceState(null,"",location.pathname)}
- if(up.get("connect_error")){toast("❌ "+esc(up.get("connect_error)),"bad");history.replaceState(null,"",location.pathname)}
+ if(up.get("connect_error")){toast("❌ "+esc(up.get("connect_error")),"bad");history.replaceState(null,"",location.pathname)}
  await loadConns();buildNav();
  await loadDB();rOverview();rScheduler();rAnalytics();rRevenue();rAutomation();rSettings();rBell();rSocial();
  $("#voiceSliders").innerHTML=sliderHTML("cs");
