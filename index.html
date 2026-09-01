@@ -440,7 +440,7 @@ async function genImage(){
   if(mode==="up"){const f=$("#isFile").files[0];if(!f)throw new Error("Pilih file dulu");base=await loadImg(URL.createObjectURL(f));credit="DOK. PRIBADI";kind="upload"}
     else if(mode==="real"||(mode==="auto"&&Math.random()<0.8)){
    let realUrl=(st&&st.img)||"",realSrc=st?st.src:"media";
-   const grab=async link=>{for(const px of ["/api/proxy?url=","https://api.allorigins.win/raw?url="]){try{const r=await fetch(px+encodeURIComponent(link));if(!r.ok)continue;const hx=await r.text();const m=hx.match(/<meta[^>]*(property|name)="og:image"[^>]*content="([^"]+)"/i)||hx.match(/<meta[^>]*content="([^"]+)"[^>]*(property|name)="og:image"/i);if(m)return m[2]||m[1]}catch(e){}}return ""};
+   const   const grab=async link=>{if(!link||link.includes("news.google.com"))return "";for(const px of ["/api/proxy?url=","https://api.allorigins.win/raw?url="]){
    if(!realUrl&&st&&st.link){realUrl=await grab(st.link)}
    if(!realUrl&&st){const tk=tokens(st.t);const cands=stories.filter(o=>o.link&&o.id!==st.id&&tokens(o.t).some(w=>tk.includes(w))).slice(0,3);
     for(const cd of cands){const u=await grab(cd.link);if(u){realUrl=u;realSrc=cd.src;break}}}
