@@ -44,5 +44,6 @@ export default async function handler(req,res){
    }
   }catch(e){}
  }));
+ await Promise.all(out.map(async o=>{if(o.link&&o.link.includes("news.google.com")){try{const rr=await fetch(o.link,{headers:{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},redirect:"follow"});if(rr.url&&!rr.url.includes("news.google.com"))o.link=rr.url}catch(e){}}}));
  res.status(200).json({items:out});
 }
