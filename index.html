@@ -68,6 +68,12 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th{font-size:10.5px;t
 #bottomNav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);z-index:50;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
 #bottomNav button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;font-weight:700;color:#7A8AA5}#bottomNav button.on{color:var(--blue)}#bottomNav svg{width:19px;height:19px}
 #moreSheet{position:fixed;inset:auto 0 0 0;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -12px 40px rgba(8,18,38,.25);z-index:70;display:none;padding:14px 14px 22px;max-height:70vh;overflow:auto}#moreSheet.on{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#moreSheet button{border:1px solid var(--line);background:#FBFCFE;border-radius:11px;padding:11px 6px;font-size:11px;font-weight:700;color:#33415C;display:flex;flex-direction:column;gap:6px;align-items:center}#moreSheet svg{width:17px;height:17px;color:var(--blue)}
+.igprev{border:1px solid var(--line);border-radius:14px;overflow:hidden;max-width:430px;background:#fff;box-shadow:var(--sh)}
+.ig-head{display:flex;gap:10px;align-items:center;padding:10px 12px}
+.ig-ava{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--blue2),#0847A8);color:#fff;font-weight:800;display:grid;place-items:center;font-size:12px}
+.ig-img{background:#0B1B33;min-height:260px;display:flex;align-items:center;justify-content:center}.ig-img img{width:100%;display:block;max-height:430px;object-fit:cover}
+.ig-acts{padding:8px 12px;font-size:16px;letter-spacing:8px}
+.ig-cap{padding:0 12px 12px;font-size:12px;line-height:1.45;white-space:pre-wrap}
 @media(max-width:1180px){.g4,.g3{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:1024px){#sidebar{transform:translateX(-100%)}#sidebar.open{transform:none}#menuBtn{display:grid}.main{margin-left:0}}
 @media(max-width:820px){.g4,.g3,.g2{grid-template-columns:1fr}#bottomNav{display:flex}main{padding:16px 14px 96px}}
@@ -465,7 +471,7 @@ async function genImage(){
    const custom=$("#isPrompt").value.trim();
    const prompt=(custom||("Photorealistic editorial sports photography, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)))+", natural stadium floodlights, candid atmosphere, realistic textures and depth of field, shot on 35mm lens, premium newsroom photo, no text, no logos, no watermark";
    try{const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();if(j.dataUrl){base=await loadImg(j.dataUrl);credit="AI: NANO BANANA";kind="ai"}}catch(e){}
-   if(!base){base=await loadImg(providers.image(prompt,w,h));credit="AI: POLLINATIONS";kind="ai"}
+  if(!base)throw new Error("Nano Banana gagal (kuota/key). Pollinations dinonaktifkan sesuai permintaan.");
   }
   const canvas=await drawPoster(base,head,credit,w,h);
   const blob=await new Promise(ok=>canvas.toBlob(ok,"image/png"));
@@ -514,7 +520,10 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
       const up=await fetch(SB.url+"/storage/v1/object/media/"+nm,{method:"POST",headers:{apikey:SB.key,Authorization:"Bearer "+SB.key,"Content-Type":"image/png"},body:blob});
       if(up.ok)imgUrl=SB.url+"/storage/v1/object/public/media/"+nm}
    }catch(e){}}
-   const j=await serverPublish({platform:pl,content:txt,image_url:imgUrl||undefined});
+      const cap=window._csCap||txt;
+   const imgUrl=window._csImg||"";
+   if(pl==="instagram"&&!imgUrl){await store.patch("posts",p0.id,{status:"failed",result:"gambar belum siap"});toast("⚠️ Gambar Nano Banana belum siap — Generate lagi lalu Approve.","warn");return}
+   const j=await serverPublish({platform:pl,content:cap.slice(0,2000),image_url:imgUrl||undefined});
    if(j.ok){await store.patch("posts",p0.id,{status:"published",result:"real"});logEvent("publish_ok",{platform:pl});toast("✅ Approved & PUBLISHED REAL ke "+pl+"!","ok")}
    else{await store.patch("posts",p0.id,{status:"failed",result:(j.error||"").slice(0,100)});logEvent("publish_fail",{platform:pl});toast("❌ "+(j.error||"gagal"),"bad")}
   }else{
@@ -568,17 +577,44 @@ document.addEventListener("click",e=>{const s=e.target.closest(".seg button");if
 document.addEventListener("click",async e=>{if(e.target.closest('[data-action="isQueue"]')){await store.add("posts",{platform:"instagram",content:($("#isHead").value||"PERSIB! 🔵")+" #Persib #Bobotoh",image_url:window._lastImg,scheduled_at:new Date(Date.now()+3600e3).toISOString(),status:"approval"});await loadDB();rScheduler();toast("📮 Poster masuk queue → approve untuk publish.","ok")}});
 
 /* ---------- generators ---------- */
+function igPreview(cap,img,user){return '<div class="igprev"><div class="ig-head"><div class="ig-ava">BB</div><div><b>'+esc(user||"bandoeng.verse")+'</b><div class="sm mut">Preview = persis yang akan dipublish</div></div></div><div class="ig-img">'+(img?'<img src="'+img+'" alt="post">':'<div class="mut sm" style="padding:40px">🖼 Gambar belum siap (Nano Banana gagal/kuota)</div>')+'</div><div class="ig-acts">♥︎ 💬 ➦</div><div class="ig-cap"><b>'+esc(user||"bandoeng.verse")+'</b> '+esc((cap||"").slice(0,400))+'</div></div>'}
 async function genContent(){const s=stories.find(x=>x.id==$("#csTopic").value);const fmt=$("#csFmt .on").dataset.f;const v=state.voice;
  $("#csOut").innerHTML='<div class="skel"></div><div class="skel"></div>';
  const ctx=s?("Berita asli: "+s.t+" (sumber: "+s.src+", verifikasi: "+verifyStory(s).label+"). "):"";
  const soc=(s&&s.tier===5)?" PENTING: bahan ini pantauan sosial media. Tulis laporan 100% ORIGINAL dengan sudut pandang sendiri; sebutkan 'berdasarkan pantauan unggahan di "+(s.src||"sosial media")+" (belum terverifikasi resmi)'; JANGAN menyalin kalimat unggahan mana pun; jangan menyatakan sebagai fakta.":"";
  try{const t=await providers.llm("Kamu editor media Persib independen. Voice: energi "+v.energy+", humor "+v.humor+", profesional "+v.professional+", emosional "+v.emotional+", clickbait "+v.clickbait+"/100. Jangan nyatakan rumor sebagai fakta, jangan fabrikasi statistik/kutipan. "+ctx+soc+"Buat format "+fmt+" untuk "+$("#csPlat").value+", bahasa Indonesia.");
   logEvent("content_gen",{fmt});
-  $("#csOut").innerHTML='<div class="row" style="margin-bottom:10px"><span class="chip ok">LLM REAL</span><span class="chip info">'+fmt+'</span><span class="sp"></span><button class="btn ghost sm" data-action="copyOut">Copy</button><button class="btn pri sm" data-action="csApprove">✔ Approve & Publish Now</button></div><div id="csGenOut" style="white-space:pre-wrap" class="sm">'+esc(t)+'</div><div class="hr"></div><b class="sm">Sources (REAL)</b><div class="row" style="margin-top:6px">'+(s?'<a class="chip mut" href="'+esc(s.link)+'" target="_blank" rel="noopener">'+esc(s.src)+' ↗</a>':"")+"</div>"}
+  window._csCap=t;window._csImg="";
+  let imgUrl="";
+  if(sbOn){try{
+    const nm="cs-"+Date.now()+".png";
+    const ri=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:"Photorealistic editorial sports photography, "+(s?s.t.slice(0,120):t.slice(0,120))+", natural stadium floodlights, candid atmosphere, realistic textures, shot on 35mm lens, no text, no logos, no watermark"})});
+    const ji=await ri.json();
+    if(ji.dataUrl){const blob=await (await fetch(ji.dataUrl)).blob();
+     const up=await fetch(SB.url+"/storage/v1/object/media/"+nm,{method:"POST",headers:{apikey:SB.key,Authorization:"Bearer "+SB.key,"Content-Type":"image/png"},body:blob});
+     if(up.ok){imgUrl=SB.url+"/storage/v1/object/public/media/"+nm;window._csImg=imgUrl}}
+  }catch(e){}}
+  $("#csOut").innerHTML='<div class="row" style="margin-bottom:10px"><span class="chip ok">LLM REAL</span><span class="chip info">'+fmt+'</span>'+(imgUrl?'<span class="chip ok">🖼 NANO BANANA</span>':'<span class="chip warn">🖼 gambar gagal</span>')+'<span class="sp"></span><button class="btn ghost sm" data-action="copyOut">Copy</button><button class="btn pri sm" data-action="csApprove">✔ Approve & Publish Now</button></div>'+igPreview(t,imgUrl,CONN.instagram)+'<div class="hr"></div><div id="csGenOut" style="white-space:pre-wrap" class="sm">'+esc(t)+'</div><div class="hr"></div><b class="sm">Sources (REAL)</b><div class="row" style="margin-top:6px">'+(s?'<a class="chip mut" href="'+esc(s.link)+'" target="_blank" rel="noopener">'+esc(s.src)+' ↗</a>':"")+"</div>"}
  catch(e){$("#csOut").innerHTML='<div class="warnnote">LLM: '+esc(String(e.message||e))+'</div>'}}
 async function genVideo(){const d=$("#vsDur .on").dataset.d;$("#vsOut").innerHTML='<div class="skel"></div>';
  try{const t=await providers.llm("Script video "+d+" detik Indonesia: "+$("#vsTopic").value+" . Format HOOK / SCENE 1-5 (visual+VO) / CTA / B-roll / musik non-copyright. Singkat.");
   logEvent("content_gen",{fmt:"video"});
+  window._vsPrompt="Football cinematic short video, "+$("#vsTopic").value+", vertical 9:16, stadium atmosphere, blue floodlights, energetic crowd, realistic, no text";
+  $("#vsOut").innerHTML='<div class="card pad"><span class="chip ok">LLM REAL</span><div style="white-space:pre-wrap" class="sm">'+esc(t)+'</div><div class="row" style="margin-top:10px"><button class="btn pri sm" data-action="vsRender">🎬 Render Video (Seedance)</button></div><div id="vsVideo" style="margin-top:10px"></div></div>'}catch(e){$("#vsOut").innerHTML='<div class="warnnote">LLM tidak terjangkau.</div>'}}
+document.addEventListener("click",async e=>{if(e.target.closest('[data-action="vsRender"]')){const box=$("#vsVideo");if(!box)return;box.innerHTML='<div class="skel"></div><div class="sm mut">Membuat task Seedance…</div>';
+ try{
+  const c=await(await fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:window._vsPrompt||"football cinematic video"})})).json();
+  if(c.error){box.innerHTML='<div class="warnnote">🎬 Seedance: '+esc(c.error)+'</div>';return}
+  let done=null;
+  for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,5000));
+   const st=await(await fetch("/api/video?task="+encodeURIComponent(c.id))).json();
+   if(st.url){done=st.url;break}
+   if(st.error){box.innerHTML='<div class="warnnote">🎬 '+esc(st.error)+'</div>';return}
+   box.innerHTML='<div class="sm mut">⏳ Seedance rendering… ±'+((i+1)*5)+' dtk</div>'}
+  if(done){window._lastVideo=done;box.innerHTML='<video controls src="'+done+'" style="width:100%;border-radius:12px"></video><div class="row" style="margin-top:8px"><button class="btn pri sm" data-action="vsSched">📮 Jadwalkan ke TikTok</button></div>'}
+  else box.innerHTML='<div class="warnnote">⏳ Rendering lama — coba lagi sebentar lagi.</div>';
+ }catch(err){box.innerHTML='<div class="warnnote">❌ '+esc(String(err.message||err))+'</div>'}}});
+document.addEventListener("click",async e=>{if(e.target.closest('[data-action="vsSched"]')){if(window._lastVideo){await store.add("posts",{platform:"tiktok",content:$("#vsTopic").value+" #Persib #Bobotoh",video_url:window._lastVideo,scheduled_at:new Date(Date.now()+3600e3).toISOString(),status:"approval"});await loadDB();rScheduler();toast("📮 Video masuk queue TikTok → approve untuk publish.","ok")}}});
   $("#vsOut").innerHTML='<div class="card pad"><span class="chip ok">LLM REAL</span><div style="white-space:pre-wrap" class="sm">'+esc(t)+'</div><div class="warnnote" style="margin-top:10px">Render video butuh provider. Setelah video di-host (URL publik), jadwalkan ke TikTok via Direct Post.</div></div>'}catch(e){$("#vsOut").innerHTML='<div class="warnnote">LLM tidak terjangkau.</div>'}}
 async function genCampaign(){$("#cpOut").innerHTML='<div class="skel"></div>';
  try{const t=await providers.llm("Strategi kampanye media Persib independen: "+$("#cpName").value+", tujuan "+$("#cpGoal").value+", audience "+$("#cpAud").value+", budget Rp "+$("#cpBudget").value+", "+$("#cpDur").value+". 3 pillars, jadwal, 3 hook, CTA, KPI = ESTIMATED RANGE (bukan jaminan), testing plan A/B. Indonesia, singkat.");
