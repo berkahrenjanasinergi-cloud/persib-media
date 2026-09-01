@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <!--
-BANDUNG BIRU AI — index.html FINAL (v7)
-25 sumber berita (RSS + radar Google News per-media) porsi 50/30/20 · LLM /api/llm ·
-Image Studio: Gemini natural + foto asli og:image (redirect Google dibuka) + upload · auto-post REAL.
+BANDUNG BIRU AI — index.html FINAL (v8)
+Poster: tanpa watermark, font Anton bold bergradasi, kolom Prompt AI, Nano Banana优先.
 -->
 <html lang="id"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BANDUNG BIRU AI — Media Command Center (REAL)</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%230B5CDB'/><circle cx='16' cy='16' r='6' fill='white'/></svg>">
 <script src="config.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{--navy:#081226;--navy2:#0C1B3A;--blue:#0B5CDB;--blue2:#2E8BFF;--bg:#F4F6FB;--line:#E4E9F2;--txt:#101828;--mut:#5B6B84;--ok:#16A34A;--warn:#D97706;--bad:#DC2626;--live:#22C55E;--r:14px;--sh:0 1px 2px rgba(16,24,40,.06),0 4px 16px rgba(16,24,40,.06);--font:Inter,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font);background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5}button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inherit;font-size:13px}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#C6D0E0;border-radius:8px}
@@ -127,11 +126,12 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th{font-size:10.5px;t
     </div>
   </section>
   <section class="view" id="v-image">
-    <div class="vhead"><div><h2>Image Studio</h2><p>Poster ala media Bandung: foto asli ber-kredit (80%) · Gemini AI natural (20%) · upload sendiri + tipografi bold.</p></div></div>
+    <div class="vhead"><div><h2>Image Studio</h2><p>Poster ala media Bandung: foto asli ber-kredit (80%) · Nano Banana AI (20%) · upload sendiri + tipografi bold.</p></div></div>
     <div class="grid" style="grid-template-columns:340px 1fr;align-items:start">
       <div class="card pad">
         <div class="fld"><label>Berita / topik</label><select class="inp" id="isTopicSel"></select></div>
         <div class="fld"><label>Judul di foto</label><input class="inp" id="isHead" placeholder="PERSIB SIAP TEMPUR!"></div>
+        <div class="fld"><label>Prompt AI (opsional — untuk Generate AI)</label><textarea class="inp" id="isPrompt" placeholder="mis.: suasana GBLA malam hari, flare biru, fotorealistis, tanpa teks…"></textarea></div>
         <div class="fld"><label>Sumber visual</label><div class="seg" id="isSrc"><button class="on" data-s="auto">Otomatis 80/20</button><button data-s="real">Foto Asli</button><button data-s="ai">Generate AI</button><button data-s="up">Upload</button></div></div>
         <div class="fld" id="isUpWrap" style="display:none"><label>File foto kamu</label><input class="inp" type="file" id="isFile" accept="image/*"></div>
         <div class="fld"><label>Style</label><select class="inp" id="isStyle"><option>editorial Bandung football</option><option>modern broadcast</option><option>terrace culture</option></select></div>
@@ -432,14 +432,17 @@ async function drawPoster(img,head,credit,w,h){
  const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");
  const s=Math.max(w/img.width,h/img.height);const dw=img.width*s,dh=img.height*s;
  x.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh);
- const g=x.createLinearGradient(0,h*0.45,0,h);g.addColorStop(0,"rgba(8,18,38,0)");g.addColorStop(1,"rgba(8,18,38,.92)");x.fillStyle=g;x.fillRect(0,h*0.45,w,h*0.55);
- x.fillStyle="#2E8BFF";x.fillRect(w*0.06,h*0.62,w*0.16,6);
- try{await document.fonts.load('900 60px "Archivo Black"');await document.fonts.load('700 30px "Oswald"')}catch(e){}
- x.fillStyle="#fff";x.textBaseline="top";let fs=Math.max(28,Math.round(w/14));x.font=fs+'px "Archivo Black", Impact, sans-serif';
+ const g=x.createLinearGradient(0,h*0.42,0,h);g.addColorStop(0,"rgba(5,12,28,0)");g.addColorStop(1,"rgba(5,12,28,.94)");x.fillStyle=g;x.fillRect(0,h*0.42,w,h*0.58);
+ x.fillStyle="#FFD400";x.fillRect(w*0.06,h*0.60,w*0.14,Math.max(5,Math.round(h*0.008)));
+ try{await document.fonts.load('400 60px "Anton"');await document.fonts.load('700 30px "Oswald"')}catch(e){}
+ const tg=x.createLinearGradient(0,h*0.62,0,h);tg.addColorStop(0,"#FFFFFF");tg.addColorStop(1,"#9CC4FF");
+ x.fillStyle=tg;x.textBaseline="top";
+ let fs=Math.max(30,Math.round(w/12));x.font=fs+'px "Anton","Archivo Black",Impact,sans-serif';
  const words=(head||"").toUpperCase().split(/\s+/);let line="",lines=[];
  for(const wd of words){const t=line?line+" "+wd:wd;if(x.measureText(t).width>w*0.88&&line){lines.push(line);line=wd}else line=t}
- if(line)lines.push(line);let ty=h*0.66;for(const ln of lines.slice(0,4)){x.fillText(ln,w*0.06,ty);ty+=fs*1.12}
- x.font='600 '+Math.round(w/34)+'px Oswald, Arial';x.fillStyle="#9CC4FF";x.fillText("BANDUNG BIRU AI · "+(credit||""),w*0.06,h*0.94);
+ if(line)lines.push(line);let ty=h*0.64;for(const ln of lines.slice(0,4)){x.fillText(ln,w*0.06,ty);ty+=fs*1.08}
+ x.font='600 '+Math.round(w/36)+'px Oswald, Arial';x.fillStyle="#FFD400";
+ x.fillText(credit||"",w*0.06,h*0.94);
  return c;
 }
 async function genImage(){
@@ -459,8 +462,9 @@ async function genImage(){
    if(realUrl){for(const px of ["/api/proxy?url=",""]){try{base=await loadImg(px?px+encodeURIComponent(realUrl):realUrl);credit="📷 "+realSrc;kind="real";break}catch(e){}}}
   }
   if(!base){
-   const prompt="Photorealistic editorial sports photography, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)+", natural stadium floodlights, candid atmosphere, realistic textures and depth of field, shot on 35mm lens, premium newsroom photo, no text, no logos, no watermark";
-   try{const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();if(j.dataUrl){base=await loadImg(j.dataUrl);credit="AI: GEMINI";kind="ai"}}catch(e){}
+   const custom=$("#isPrompt").value.trim();
+   const prompt=(custom||("Photorealistic editorial sports photography, "+$("#isStyle").value+", "+(st?st.t.slice(0,120):head)))+", natural stadium floodlights, candid atmosphere, realistic textures and depth of field, shot on 35mm lens, premium newsroom photo, no text, no logos, no watermark";
+   try{const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();if(j.dataUrl){base=await loadImg(j.dataUrl);credit="AI: NANO BANANA";kind="ai"}}catch(e){}
    if(!base){base=await loadImg(providers.image(prompt,w,h));credit="AI: POLLINATIONS";kind="ai"}
   }
   const canvas=await drawPoster(base,head,credit,w,h);
