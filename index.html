@@ -318,8 +318,8 @@ const tokens=t=>(t.toLowerCase().match(/[a-z]{5,}/g)||[]).filter(w=>!["persib","
 async function loadNews(){$("#nrStatus").textContent="Mengambil berita asli dari RSS…";$("#liveTxt").textContent="Fetching RSS…";
  let items=[];try{items=await providers.news()}catch(e){}
  const seen=new Set();stories=[];
- items.forEach(it=>{const k=tokens(it.t).slice(0,4).join("|");if(!it.t||seen.has(k))return;seen.add(k);stories.push({id:stories.length+1,src:it.src,tier:it.tier,t:it.t,link:it.link,date:new Date(it.date||Date.now()),cat:catOf(it.t),img:it.img||""})});
- stories.sort((a,b)=>b.date-a.date);stories=stories.slice(0,60);
+ const deent=s=>String(s||"").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").replace(/&#(\d+);/g,(m,d)=>String.fromCharCode(+d)).replace(/&amp;/gi,"&");
+ items.forEach(it=>{it.t=deent(it.t);const k=tokens(it.t).slice(0,4).join("|");if(!it.t||seen.has(k))return;seen.add(k);stories.push({id:stories.length+1,src:it.src,tier:it.tier,t:it.t,link:it.link,date:new Date(it.date||Date.now()),cat:catOf(it.t),img:it.img||""})}); stories.sort((a,b)=>b.date-a.date);stories=stories.slice(0,60);
  const poolOf=t=>{t=t.toLowerCase();if(/persib|bobotoh|maung|bandung|jabar/.test(t))return 0;if(/liga 1|liga 2|timnas|pssi|garuda|arema|persija|persebaya|bali united|psm|sepak ?bola/.test(t))return 1;return 2};
  const pools=[[],[],[]];stories.forEach(s=>pools[poolOf(s.t)].push(s));
  const ratio=[0.5,0.3,0.2],idx=[0,0,0],mixed=[];
