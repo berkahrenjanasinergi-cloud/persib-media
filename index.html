@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
-BANDUNG BIRU AI — index.html FINAL (v10)
-v10: upload foto/video di Content Studio + enhance foto asli (anti pecah). Struktur lain tidak berubah.
+BANDUNG BIRU AI — index.html FINAL (v11)
+Poster Image Studio otomatis dipakai posting Newsroom/Content Studio (preview = publish).
 -->
 <html lang="id"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -118,7 +118,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th{font-size:10.5px;t
     <div id="dtBody"></div>
   </section>
   <section class="view" id="v-content">
-    <div class="vhead"><div><h2>Content Studio</h2><p>Teks REAL (Gemini) + gambar Nano Banana / lampiran sendiri + preview IG = yang dipublish.</p></div></div>
+    <div class="vhead"><div><h2>Content Studio</h2><p>Teks REAL (Gemini) + gambar otomatis dari poster Image Studio / lampiran / Nano Banana + preview IG = yang dipublish.</p></div></div>
     <div class="grid" style="grid-template-columns:340px 1fr;align-items:start">
       <div class="card pad">
         <div class="fld"><label>Topik / berita sumber</label><select class="inp" id="csTopic"></select></div>
@@ -134,7 +134,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th{font-size:10.5px;t
     </div>
   </section>
   <section class="view" id="v-image">
-    <div class="vhead"><div><h2>Image Studio</h2><p>Poster ala media Bandung: foto asli ber-kredit + AUTO-ENHANCE (80%) · Nano Banana AI (20%) · upload sendiri + tipografi bold.</p></div></div>
+    <div class="vhead"><div><h2>Image Studio</h2><p>Poster ala media Bandung: foto asli ber-kredit + AUTO-ENHANCE (80%) · Nano Banana AI (20%) · upload sendiri + tipografi bold. Poster otomatis dipakai posting di Newsroom.</p></div></div>
     <div class="grid" style="grid-template-columns:340px 1fr;align-items:start">
       <div class="card pad">
         <div class="fld"><label>Berita / topik</label><select class="inp" id="isTopicSel"></select></div>
@@ -147,7 +147,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th{font-size:10.5px;t
         <button class="btn pri" style="width:100%;justify-content:center" data-action="isGen">🎨 Buat Poster</button>
         <div class="warnnote" style="margin-top:10px">⚖️ Foto RSS milik media — kredit otomatis ditempel. Komersial = pastikan izin, atau pakai foto sendiri/AI.</div>
       </div>
-      <div class="card pad" id="isOut"><div class="mut sm">Poster tampil di sini, siap dijadwalkan ke IG/FB.</div></div>
+      <div class="card pad" id="isOut"><div class="mut sm">Poster tampil di sini, siap dijadwalkan ke IG/FB & otomatis jadi foto posting Newsroom.</div></div>
     </div>
   </section>
   <section class="view" id="v-video">
@@ -319,7 +319,8 @@ async function loadNews(){$("#nrStatus").textContent="Mengambil berita asli dari
  let items=[];try{items=await providers.news()}catch(e){}
  const seen=new Set();stories=[];
  const deent=s=>String(s||"").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").replace(/&#(\d+);/g,(m,d)=>String.fromCharCode(+d)).replace(/&amp;/gi,"&");
- items.forEach(it=>{it.t=deent(it.t);const k=tokens(it.t).slice(0,4).join("|");if(!it.t||seen.has(k))return;seen.add(k);stories.push({id:stories.length+1,src:it.src,tier:it.tier,t:it.t,link:it.link,date:new Date(it.date||Date.now()),cat:catOf(it.t),img:it.img||""})}); stories.sort((a,b)=>b.date-a.date);stories=stories.slice(0,60);
+ items.forEach(it=>{it.t=deent(it.t);const k=tokens(it.t).slice(0,4).join("|");if(!it.t||seen.has(k))return;seen.add(k);stories.push({id:stories.length+1,src:it.src,tier:it.tier,t:it.t,link:it.link,date:new Date(it.date||Date.now()),cat:catOf(it.t),img:it.img||""})});
+ stories.sort((a,b)=>b.date-a.date);stories=stories.slice(0,60);
  const poolOf=t=>{t=t.toLowerCase();if(/persib|bobotoh|maung|bandung|jabar/.test(t))return 0;if(/liga 1|liga 2|timnas|pssi|garuda|arema|persija|persebaya|bali united|psm|sepak ?bola/.test(t))return 1;return 2};
  const pools=[[],[],[]];stories.forEach(s=>pools[poolOf(s.t)].push(s));
  const ratio=[0.5,0.3,0.2],idx=[0,0,0],mixed=[];
@@ -492,6 +493,7 @@ async function genImage(){
   const blob=await new Promise(ok=>canvas.toBlob(ok,"image/png"));
   const url=await uploadPoster(blob,"poster-"+Date.now()+".png");
   window._lastImg=url||canvas.toDataURL("image/png");
+  if(url)localStorage.setItem("bb_lastImg",url);
   $("#isOut").innerHTML='<div class="imgprev"><img src="'+window._lastImg+'" alt="poster"></div><div class="row" style="margin-top:10px"><span class="chip '+(kind==="ai"?"info":"ok")+'">'+(kind==="ai"?"GENERATE (20%)":"FOTO ASLI (80%) + ENHANCE")+'</span><span class="chip mut">'+esc(credit)+'</span><span class="sp"></span><button class="btn ghost sm" data-action="isSave">Simpan</button><button class="btn pri sm" data-action="isQueue">📮 Jadwalkan ke IG/FB</button></div>'+(!url?'<div class="warnnote" style="margin-top:8px">Storage Supabase belum aktif → poster hanya preview. Jalankan SQL bucket "media" agar bisa diposting.</div>':"");
   logEvent("image_gen",{kind});
  }catch(e){$("#isOut").innerHTML='<div class="warnnote">Gagal: '+esc(String(e.message||e))+' — coba mode Foto Asli/Upload, atau cek kuota Nano Banana.</div>'}
@@ -529,7 +531,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
    const imgUrl=(window._csMediaType==="image"&&window._csMedia)?window._csMedia:(window._csImg||"");
    const vidUrl=(window._csMediaType==="video"&&window._csMedia)?window._csMedia:"";
    const p0=await store.add("posts",{platform:pl,content:capTxt.slice(0,2000),scheduled_at:new Date().toISOString(),status:"scheduled",result:"approve-now"});
-   if(pl==="instagram"&&!imgUrl){await store.patch("posts",p0.id,{status:"failed",result:"gambar belum siap"});toast("⚠️ Gambar belum siap (lampirkan foto atau Generate ulang) — post ditandai failed.","warn")}
+   if(pl==="instagram"&&!imgUrl){await store.patch("posts",p0.id,{status:"failed",result:"gambar belum siap"});toast("⚠️ Gambar belum siap (lampirkan foto atau buat poster di Image Studio).","warn")}
    else{
     const j=await serverPublish({platform:pl,content:capTxt.slice(0,2000),image_url:imgUrl||undefined,video_url:vidUrl||undefined});
     if(j.ok){await store.patch("posts",p0.id,{status:"published",result:"real"});logEvent("publish_ok",{platform:pl});toast("✅ Approved & PUBLISHED REAL ke "+pl+" — sama persis dengan preview!","ok")}
@@ -543,7 +545,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
  }catch(err){toast("⚠️ "+String(err.message||err),"warn");console.error(err)}}
  if(a==="copyOut"){navigator.clipboard&&navigator.clipboard.writeText($("#csGenOut").innerText);toast("📋 Disalin.","ok")}
  if(a==="isGen")genImage();
- if(a==="isSave"){const img=$("#isOut img");if(img){await store.add("assets",{kind:"image",url:img.src,prompt:$("#isHead").value,tags:"poster"});toast("🖼️ Asset tersimpan.","ok")}}
+ if(a==="isSave"){const img=$("#isOut img");if(img){await store.add("assets",{kind:"image",url:img.src,prompt:$("#isHead").value,tags:"poster"});toast("🖼️ Asset tersimpan di Supabase (tabel assets + Storage/media).","ok")}}
  if(a==="vsGen")genVideo();
  if(a==="vsDur"){$$("#vsDur button").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
  if(a==="cpGen")genCampaign();
@@ -599,7 +601,7 @@ document.addEventListener("click",e=>{const s=e.target.closest(".seg button");if
 document.addEventListener("click",async e=>{if(e.target.closest('[data-action="isQueue"]')){await store.add("posts",{platform:"instagram",content:($("#isHead").value||"PERSIB! 🔵")+" #Persib #Bobotoh",image_url:window._lastImg,scheduled_at:new Date(Date.now()+3600e3).toISOString(),status:"approval"});await loadDB();rScheduler();toast("📮 Poster masuk queue → approve untuk publish.","ok")}});
 
 /* ---------- generators ---------- */
-function igPreview(cap,img,user){return '<div class="igprev"><div class="ig-head"><div class="ig-ava">BB</div><div><b>'+esc(user||"bandoeng.verse")+'</b><div class="sm mut">Preview = persis yang akan dipublish</div></div></div><div class="ig-img">'+(img?'<img src="'+img+'" alt="post">':'<div class="mut sm" style="padding:40px">🖼 Gambar belum siap (Nano Banana gagal/kuota — atau lampirkan foto)</div>')+'</div><div class="ig-acts">♥︎ 💬 ➦</div><div class="ig-cap"><b>'+esc(user||"bandoeng.verse")+'</b> '+esc((cap||"").slice(0,400))+'</div></div>'}
+function igPreview(cap,img,user){return '<div class="igprev"><div class="ig-head"><div class="ig-ava">BB</div><div><b>'+esc(user||"bandoeng.verse")+'</b><div class="sm mut">Preview = persis yang akan dipublish</div></div></div><div class="ig-img">'+(img?'<img src="'+img+'" alt="post">':'<div class="mut sm" style="padding:40px">🖼 Gambar belum siap — buat poster di Image Studio atau lampirkan foto</div>')+'</div><div class="ig-acts">♥︎ 💬 ➦</div><div class="ig-cap"><b>'+esc(user||"bandoeng.verse")+'</b> '+esc((cap||"").slice(0,400))+'</div></div>'}
 async function genContent(){const s=stories.find(x=>x.id==$("#csTopic").value);const fmt=$("#csFmt .on").dataset.f;const v=state.voice;
  $("#csOut").innerHTML='<div class="skel"></div><div class="skel"></div>';
  const ctx=s?("Berita asli: "+s.t+" (sumber: "+s.src+", verifikasi: "+verifyStory(s).label+"). "):"";
@@ -607,10 +609,11 @@ async function genContent(){const s=stories.find(x=>x.id==$("#csTopic").value);c
  try{const t=await providers.llm("Kamu editor media Persib independen. Voice: energi "+v.energy+", humor "+v.humor+", profesional "+v.professional+", emosional "+v.emotional+", clickbait "+v.clickbait+"/100. Jangan nyatakan rumor sebagai fakta, jangan fabrikasi statistik/kutipan. "+ctx+soc+"Buat format "+fmt+" untuk "+$("#csPlat").value+", bahasa Indonesia.");
   logEvent("content_gen",{fmt});
   window._csCap=t;window._csImg="";
-  let imgUrl="";
-  if(window._csMediaType==="image"&&window._csMedia){imgUrl=window._csMedia;window._csImg=imgUrl}
-  else{try{imgUrl=await nanoBanana("Photorealistic editorial sports photography, "+(s?s.t.slice(0,120):t.slice(0,120))+", natural stadium floodlights, candid atmosphere, realistic textures, shot on 35mm lens, no text, no logos, no watermark","cs-"+Date.now()+".png");window._csImg=imgUrl}catch(e){}}
-  $("#csOut").innerHTML='<div class="row" style="margin-bottom:10px"><span class="chip ok">LLM REAL</span><span class="chip info">'+fmt+'</span>'+(imgUrl?'<span class="chip ok">🖼 NANO BANANA / LAMPIRAN</span>':'<span class="chip warn">🖼 gambar gagal — lampirkan foto</span>')+'<span class="sp"></span><button class="btn ghost sm" data-action="copyOut">Copy</button><button class="btn pri sm" data-action="csApprove">✔ Approve & Publish Now</button></div>'+igPreview(t,imgUrl,CONN.instagram)+'<div class="hr"></div><div id="csGenOut" style="white-space:pre-wrap" class="sm">'+esc(t)+'</div><div class="hr"></div><b class="sm">Sources (REAL)</b><div class="row" style="margin-top:6px">'+(s?'<a class="chip mut" href="'+esc(s.link)+'" target="_blank" rel="noopener">'+esc(s.src)+' ↗</a>':"")+"</div>"}
+  let imgUrl="",imgSrc="";
+  if(window._csMediaType==="image"&&window._csMedia){imgUrl=window._csMedia;window._csImg=imgUrl;imgSrc="LAMPIRAN UPLOAD"}
+  else if(window._lastImg&&/^https?:/.test(window._lastImg)){imgUrl=window._lastImg;window._csImg=imgUrl;imgSrc="POSTER IMAGE STUDIO"}
+  else{try{imgUrl=await nanoBanana("Photorealistic editorial sports photography, "+(s?s.t.slice(0,120):t.slice(0,120))+", natural stadium floodlights, candid atmosphere, realistic textures, shot on 35mm lens, no text, no logos, no watermark","cs-"+Date.now()+".png");window._csImg=imgUrl;imgSrc="NANO BANANA"}catch(e){}}
+  $("#csOut").innerHTML='<div class="row" style="margin-bottom:10px"><span class="chip ok">LLM REAL</span><span class="chip info">'+fmt+'</span>'+(imgUrl?'<span class="chip ok">🖼 '+imgSrc+"</span>":'<span class="chip warn">🖼 gambar gagal — buat poster/lampirkan foto</span>')+'<span class="sp"></span><button class="btn ghost sm" data-action="copyOut">Copy</button><button class="btn pri sm" data-action="csApprove">✔ Approve & Publish Now</button></div>'+igPreview(t,imgUrl,CONN.instagram)+'<div class="hr"></div><div id="csGenOut" style="white-space:pre-wrap" class="sm">'+esc(t)+'</div><div class="hr"></div><b class="sm">Sources (REAL)</b><div class="row" style="margin-top:6px">'+(s?'<a class="chip mut" href="'+esc(s.link)+'" target="_blank" rel="noopener">'+esc(s.src)+' ↗</a>':"")+"</div>"}
  catch(e){$("#csOut").innerHTML='<div class="warnnote">LLM: '+esc(String(e.message||e))+'</div>'}}
 async function genVideo(){const d=$("#vsDur .on").dataset.d;$("#vsOut").innerHTML='<div class="skel"></div>';
  try{const t=await providers.llm("Script video "+d+" detik Indonesia: "+$("#vsTopic").value+" . Format HOOK / SCENE 1-5 (visual+VO) / CTA / B-roll / musik non-copyright. Singkat.");
@@ -646,6 +649,7 @@ document.addEventListener("click",e=>{if(e.target.closest('[data-action="scSave"
  const up=new URLSearchParams(location.search);
  if(up.get("connected")){toast("🔗 "+esc(up.get("connected"))+" TERHUBUNG (REAL).","ok");history.replaceState(null,"",location.pathname)}
  if(up.get("connect_error")){toast("❌ "+esc(up.get("connect_error")),"bad");history.replaceState(null,"",location.pathname)}
+ window._lastImg=localStorage.getItem("bb_lastImg")||"";
  await loadConns();buildNav();
  await loadDB();rOverview();rScheduler();rAnalytics();rRevenue();rAutomation();rSettings();rBell();rSocial();
  $("#voiceSliders").innerHTML=sliderHTML("cs");
