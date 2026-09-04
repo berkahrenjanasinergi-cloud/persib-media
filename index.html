@@ -475,7 +475,7 @@ async function drawPoster(img,head,credit,w,h){
  for(const wd of words){const t=line?line+" "+wd:wd;if(x.measureText(t).width>w*0.88&&line){lines.push(line);line=wd}else line=t}
  if(line)lines.push(line);let ty=h*0.64;for(const ln of lines.slice(0,4)){x.fillText(ln,w*0.06,ty);ty+=fs*1.08}
  x.font='600 '+Math.round(w/36)+'px Oswald, Arial';x.fillStyle="#FFD400";
- x.fillText(credit||"",w*0.06,h*0.94);
+ if(credit&&!/^AI:/i.test(credit))x.fillText(credit,w*0.06,h*0.94);
  return c;
 }
 async function genImage(){
