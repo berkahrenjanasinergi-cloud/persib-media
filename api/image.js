@@ -4,18 +4,33 @@ async function asDataUrl(url){try{const r=await fetch(url,{headers:{"User-Agent"
 async function geminiGenerate(p,keys){
  for(const key of keys){
   if(!key||key.length<20)continue;
-  let MODELS=["gemini-2.5-flash-image","gemini-2.5-flash-image-preview","gemini-3-flash-image","gemini-3-pro-image","gemini-2.0-flash-preview-image-generation"];
-  try{const lr=await fetch("https://generativelanguage.googleapis.com/v1beta/models?key="+key+"&pageSize=500");
+  const plan=[];
+  try{
+   const lr=await fetch("https://generativelanguage.googleapis.com/v1beta/models?key="+key+"&pageSize=500");
    const lj=await lr.json();
-   if(lj.error&&/API_KEY_INVALID|invalid authentication/i.test(lj.error.message||""))continue;
-   const imgm=((lj.models||[]).map(x=>(x.name||"").replace("models/",""))).filter(n=>/image|imagen|banana/i.test(n));
-   if(imgm.length)MODELS=[...imgm,...MODELS];}catch(e){}
-  for(const m of MODELS){
-   try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:p}]}]})});
-    const j=await r.json();
-    if(j.error&&/API_KEY_INVALID|invalid authentication/i.test(j.error.message||""))break;
-    const parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[];
-    for(const pt of parts){if(pt.inlineData&&pt.inlineData.data)return "data:"+(pt.inlineData.mimeType||"image/png")+";base64,"+pt.inlineData.data}
+   for(const m of (lj.models||[])){
+    const n=(m.name||"").replace("models/","");
+    if(!/image|imagen|banana/i.test(n))continue;
+    const meth=m.supportedGenerationMethods||[];
+    if(meth.includes("generateContent"))plan.push({m:n,mode:"gc"});
+    else if(meth.includes("predict"))plan.push({m:n,mode:"predict"});
+   }
+  }catch(e){}
+  plan.push({m:"gemini-2.5-flash-image",mode:"gc"},{m:"gemini-2.5-flash-image-preview",mode:"gc"});
+  for(const t of plan){
+   try{
+    if(t.mode==="gc"){
+     const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+t.m+":generateContent?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:p}]}]})});
+     const j=await r.json();
+     if(j.error&&/API_KEY_INVALID|invalid authentication/i.test(j.error.message||""))break;
+     const parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[];
+     for(const pt of parts){if(pt.inlineData&&pt.inlineData.data)return "data:"+(pt.inlineData.mimeType||"image/png")+";base64,"+pt.inlineData.data}
+    }else{
+     const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+t.m+":predict?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instances:[{prompt:p}],parameters:{sampleCount:1}})});
+     const j=await r.json();
+     const pr=j.predictions&&j.predictions[0];
+     if(pr&&pr.bytesBase64Encoded)return "data:"+(pr.mimeType||"image/png")+";base64,"+pr.bytesBase64Encoded;
+    }
    }catch(e){}
   }
  }
@@ -104,7 +119,7 @@ export default async function handler(req,res){
  let last="";
  const g=await geminiGenerate(p,keys);
  if(g)return res.status(200).json({dataUrl:g,credit:"AI: NANO BANANA"});
- last="gemini: key/kuota tidak valid";
+ last="gemini: tidak ada model image yang cocok";
  if(hf){const h=await hfGenerate(p,hf);
   if(h)return res.status(200).json({dataUrl:h,credit:"AI: FLUX (HF)"});
   last+=" | hf: gagal"}
