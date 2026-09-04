@@ -73,11 +73,15 @@ async function commonsFallback(prompt){
  const stop=/foto|photo|realistic|lens|text|logos|watermark|floodlights|candid|atmosphere|textures|depth|field|premium|newsroom|editorial|sports|photography|natural|shot|mm|no|tanpa|dengan|untuk|yang|dan|dari|pada/i;
  const base=(prompt.match(/[a-z0-9]{4,}/gi)||[]).filter(w=>!stop.test(w)).slice(0,3).join(" ");
  const queries=[base+" football stadium","football stadium","soccer player","football","stadium"];
+ const okTitle=t=>/football|soccer|stadium|arena|persib|bola|sepak|gelora/i.test(t||"");
  for(const qq of queries){
   try{
-   const r=await fetch("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch="+encodeURIComponent(qq)+"&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|size&iiurlwidth=1200",{headers:{"User-Agent":"BandungBiruAI/1.0 (https://persib-media.vercel.app)"}});
+   const r=await fetch("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch="+encodeURIComponent(qq)+"&gsrnamespace=6&gsrlimit=10&prop=imageinfo|info&iiprop=url|size&iiurlwidth=1200",{headers:{"User-Agent":"BandungBiruAI/1.0 (https://persib-media.vercel.app)"}});
    const j=await r.json();const ps=j&&j.query&&j.query.pages?Object.values(j.query.pages):[];
-   for(const p of ps){const ii=p.imageinfo&&p.imageinfo[0];const u=ii&&(ii.thumburl||ii.url);if(u){const d=await asDataUrl(u);if(d)return d}}
+   for(const p of ps){
+    const ii=p.imageinfo&&p.imageinfo[0];const u=ii&&(ii.thumburl||ii.url);const w=(ii&&ii.width)||0;
+    if(u&&okTitle(p.title)&&(!w||w>=800)){const d=await asDataUrl(u);if(d)return d}
+   }
   }catch(e){}
  }
  return "";
