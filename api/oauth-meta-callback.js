@@ -1,34 +1,25 @@
-const H=K=>({apikey:K,Authorization:"Bearer "+K,"Content-Type":"application/json",Prefer:"return=representation"});
+const G="https://graph.facebook.com/v21.0";
 export default async function handler(req,res){
- const {META_APP_ID:A,META_APP_SECRET:S,SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=process.env;
- const redirect="https://"+req.headers.host+"/api/oauth-meta-callback";
- const G="https://graph.facebook.com/v21.0";
+ const {META_APP_ID:ID,META_APP_SECRET:SEC,SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=process.env;
+ const redirect=process.env.META_REDIRECT_URI||("https://"+(process.env.VERCEL_PROJECT_PRODUCTION_DOMAIN||"persib-media.vercel.app")+"/api/oauth-meta-callback");
+ const code=req.query.code||"";
+ const fail=m=>res.redirect("/?connect_error="+encodeURIComponent(m));
+ if(!code)return fail("no code");
  try{
-  const r=await(await fetch(G+"/oauth/access_token?client_id="+A+"&client_secret="+S+"&redirect_uri="+encodeURIComponent(redirect)+"&code="+req.query.code)).json();
-  if(!r.access_token)throw new Error("Gagal token: "+(r.error_message||JSON.stringify(r)));
-  const l=await(await fetch(G+"/oauth/access_token?grant_type=fb_exchange_token&client_id="+A+"&client_secret="+S+"&fb_exchange_token="+r.access_token)).json();
-  const long=l.access_token||r.access_token;
-  const acc=await(await fetch(G+"/me/accounts?fields=id,name,access_token,instagram_business_account{id,username}&limit=100&access_token="+long)).json();
-  let page=(acc.data||[])[0];let via="";
-  if(!page){
-   const biz=await(await fetch(G+"/me/businesses?access_token="+long)).json();
-   for(const b of (biz.data||[])){
-    const op=await(await fetch(G+"/"+b.id+"/owned_pages?fields=id,name&limit=50&access_token="+long)).json();
-    if((op.data||[]).length){page=op.data[0];via=" (via bisnis)";break}
-   }
-  }
-  if(!page)throw new Error("SINAR-X: akun ini tetap tidak melihat Page sama sekali.");
-  const full=await(await fetch(G+"/"+page.id+"?fields=id,name,access_token,instagram_business_account{id,username}&access_token="+long)).json();
-  if(!full.access_token)throw new Error("Page '"+page.name+"' ditemukan"+via+" tapi token Halaman tidak bisa diambil.");
-  const ig=full.instagram_business_account;
-  await fetch(U+"/rest/v1/connections?id=eq.facebook",{method:"DELETE",headers:H(K)});
-  await fetch(U+"/rest/v1/connections",{method:"POST",headers:H(K),body:JSON.stringify({id:"facebook",platform:"facebook",account_name:full.name||page.name,account_id:full.id,access_token:full.access_token})});
-  if(ig){
-   await fetch(U+"/rest/v1/connections?id=eq.instagram",{method:"DELETE",headers:H(K)});
-   await fetch(U+"/rest/v1/connections",{method:"POST",headers:H(K),body:JSON.stringify({id:"instagram",platform:"instagram",account_name:"@"+(ig.username||ig.id),account_id:ig.id,access_token:full.access_token})});
-   res.redirect("/?connected="+encodeURIComponent("Facebook + Instagram @"+(ig.username||"")+" TERHUBUNG"+via));
-  }else{
-   res.redirect("/?connect_error="+encodeURIComponent("Facebook OK ("+(full.name||page.name)+") tapi IG belum tertaut ke Page."));
-  }
- }catch(e){res.redirect("/?connect_error="+encodeURIComponent(String(e.message||e)))}
+  const t1=await(await fetch(G+"/oauth/access_token?client_id="+ID+"&client_secret="+SEC+"&redirect_uri="+encodeURIComponent(redirect)+"&code="+code)).json();
+  if(!t1.access_token)return fail((t1.error&&t1.error.message)||"token exchange gagal");
+  const t2=await(await fetch(G+"/oauth/access_token?grant_type=fb_exchange_token&client_id="+ID+"&client_secret="+SEC+"&fb_exchange_token="+encodeURIComponent(t1.access_token))).json();
+  const userTok=t2.access_token||t1.access_token;
+  const acc=await(await fetch(G+"/me/accounts?access_token="+encodeURIComponent(userTok))).json();
+  const page=(acc.data||[])[0];
+  if(!page)return fail("tidak ada Page Facebook");
+  const ig=await(await fetch(G+"/"+page.id+"?fields=instagram_business_account&access_token="+encodeURIComponent(page.access_token))).json();
+  if(!ig.instagram_business_account)return fail("Page belum terhubung ke Instagram Business");
+  const H={apikey:K,Authorization:"Bearer "+K,"Content-Type":"application/json",Prefer:"return=representation"};
+  await fetch(U+"/rest/v1/connections?id=eq.instagram",{method:"DELETE",headers:H});
+  await fetch(U+"/rest/v1/connections?id=eq.facebook",{method:"DELETE",headers:H});
+  await fetch(U+"/rest/v1/connections",{method:"POST",headers:H,body:JSON.stringify({platform:"instagram",account_id:ig.instagram_business_account.id,account_name:"@"+(ig.instagram_business_account.username||"akun"),access_token:page.access_token,expires_at:new Date(Date.now()+60*86400e3).toISOString()})});
+  await fetch(U+"/rest/v1/connections",{method:"POST",headers:H,body:JSON.stringify({platform:"facebook",account_id:page.id,account_name:page.name,access_token:page.access_token,expires_at:new Date(Date.now()+60*86400e3).toISOString()})});
+  res.redirect("/?connected=Instagram+Facebook+(long-lived)");
+ }catch(e){return fail(String(e.message||e))}
 }
