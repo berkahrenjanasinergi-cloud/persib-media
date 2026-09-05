@@ -2,14 +2,40 @@ const H=K=>({apikey:K,Authorization:"Bearer "+K,"Content-Type":"application/json
 const G="https://graph.facebook.com/v21.0";
 async function graph(path,body){const r=await fetch(G+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json();if(j.error)throw new Error(j.error.message);return j}
 async function getConn(U,K,p){const r=await(await fetch(U+"/rest/v1/connections?id=eq."+p,{headers:H(K)})).json();return (r||[])[0]}
+function b64(buf){return Buffer.from(buf).toString("base64")}
+async function asDataUrl(url){try{const r=await fetch(url,{headers:{"User-Agent":"BandungBiruAI/1.0"}});if(!r.ok)return "";const t=r.headers.get("content-type")||"image/jpeg";if(!t.startsWith("image/"))return "";const buf=await r.arrayBuffer();if(buf.byteLength<1000)return "";return "data:"+t+";base64,"+b64(buf)}catch(e){return ""}}
 async function geminiText(p,keys){for(const key of keys){for(const m of ["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.0-flash","gemini-2.0-flash-lite"]){try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:p}]}]})});const j=await r.json();const t=j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts&&j.candidates[0].content.parts[0]&&j.candidates[0].content.parts[0].text;if(t)return t.trim()}catch(e){}}}return ""}
-async function geminiImage(p,keys){for(const key of keys){for(const m of ["gemini-2.5-flash-image","gemini-2.5-flash-image-preview","gemini-2.0-flash-preview-image-generation"]){try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:p}]}]})});const j=await r.json();const parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[];for(const pt of parts){if(pt.inlineData&&pt.inlineData.data)return "data:"+(pt.inlineData.mimeType||"image/png")+";base64,"+pt.inlineData.data}}catch(e){}}}return ""}
+async function geminiImage(p,keys){
+ for(const key of keys){
+  if(!key||key.length<20)continue;
+  const plan=[];
+  try{const lr=await fetch("https://generativelanguage.googleapis.com/v1beta/models?key="+key+"&pageSize=500");const lj=await lr.json();
+   for(const m of (lj.models||[])){const n=(m.name||"").replace("models/","");if(!/image|imagen|banana/i.test(n))continue;const meth=m.supportedGenerationMethods||[];if(meth.includes("generateContent"))plan.push({m:n,mode:"gc"});else if(meth.includes("predict"))plan.push({m:n,mode:"predict"})}}catch(e){}
+  plan.push({m:"gemini-2.5-flash-image",mode:"gc"});
+  for(const t of plan){
+   try{
+    if(t.mode==="gc"){const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+t.m+":generateContent?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:p}]}]})});const j=await r.json();const parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[];for(const pt of parts){if(pt.inlineData&&pt.inlineData.data)return "data:"+(pt.inlineData.mimeType||"image/png")+";base64,"+pt.inlineData.data}}
+    else{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+t.m+":predict?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instances:[{prompt:p}],parameters:{sampleCount:1}})});const j=await r.json();const pr=j.predictions&&j.predictions[0];if(pr&&pr.bytesBase64Encoded)return "data:"+(pr.mimeType||"image/png")+";base64,"+pr.bytesBase64Encoded}
+   }catch(e){}
+  }
+ }
+ return "";
+}
 async function storeImage(dataUrl,env,name){const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;try{const blob=await (await fetch(dataUrl)).blob();const r=await fetch(U+"/storage/v1/object/media/"+name,{method:"POST",headers:{apikey:K,Authorization:"Bearer "+K,"Content-Type":"image/png"},body:blob});if(r.ok)return U+"/storage/v1/object/public/media/"+name}catch(e){}return ""}
-async function commonsImage(q){const queries=[q+" football stadium","football stadium","soccer player"];for(const qq of queries){try{const r=await fetch("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch="+encodeURIComponent(qq)+"&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|size&iiurlwidth=1080",{headers:{"User-Agent":"BandungBiruAI/1.0"}});const j=await r.json();const ps=j&&j.query&&j.query.pages?Object.values(j.query.pages):[];for(const p of ps){const ii=p.imageinfo&&p.imageinfo[0];const u=ii&&(ii.thumburl||ii.url);if(u)return u}}catch(e){}}return ""}
-async function getImage(prompt,env,name){const keys=(env.GEMINI_KEY||"").split(",").map(s=>s.trim()).filter(Boolean);const d=await geminiImage(prompt,keys);if(d){const u=await storeImage(d,env,name);if(u)return u}return await commonsImage(prompt.slice(0,80))}
+async function commonsUrl(q){const stop=/foto|photo|realistic|lens|text|logos|watermark|floodlights|candid|atmosphere|textures|depth|field|premium|newsroom|editorial|sports|photography|natural|shot|mm|no|tanpa|dengan|untuk|yang|dan|dari|pada/i;const base=(q.match(/[a-z0-9]{4,}/gi)||[]).filter(w=>!stop.test(w)).slice(0,3).join(" ");const queries=[base+" football stadium","football stadium","soccer player","football","stadium"];const okTitle=t=>/football|soccer|stadium|arena|persib|bola|sepak|gelora/i.test(t||"");
+ for(const qq of queries){try{const r=await fetch("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch="+encodeURIComponent(qq)+"&gsrnamespace=6&gsrlimit=10&prop=imageinfo|info&iiprop=url|size&iiurlwidth=1200",{headers:{"User-Agent":"BandungBiruAI/1.0"}});const j=await r.json();const ps=j&&j.query&&j.query.pages?Object.values(j.query.pages):[];for(const p of ps){const ii=p.imageinfo&&p.imageinfo[0];const u=ii&&(ii.thumburl||ii.url);const w=(ii&&ii.width)||0;if(u&&okTitle(p.title)&&(!w||w>=800))return u}}catch(e){}}
+ return ""}
+async function getImage(prompt,env,name){
+ const keys=(env.GEMINI_KEY||"").split(",").map(s=>s.trim()).filter(Boolean);
+ const d=await geminiImage(prompt,keys);
+ if(d){const u=await storeImage(d,env,name);if(u)return u}
+ const c=await commonsUrl(prompt);if(c)return c;
+ for(const q of ["football,stadium","soccer"]){const u="https://loremflickr.com/1024/1024/"+q;const dd=await asDataUrl(u);if(dd){const su=await storeImage(dd,env,name);if(su)return su;return u}}
+ return "";
+}
 
 /* ===== TUGAS LAMA (TIDAK BERUBAH): 5 slot/hari dari RSS ===== */
-async function runAgent(env,base){
+async function runAgent(env,base,force){
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
  if((env.AGENT_ON||"on")==="off")return 0;
  const conn=await getConn(U,K,"instagram");
@@ -29,7 +55,7 @@ async function runAgent(env,base){
   const slotStr=String(Math.floor(tot/60)).padStart(2,"0")+":"+String(((tot%60)+60)%60).padStart(2,"0");
   const tag="agent-"+dateKey+"-"+i;
   if(done[tag])continue;
-  if(hhmm<slotStr)continue;
+  if(!force&&hhmm<slotStr)continue;
   try{
    const nr=await fetch(base+"/api/news");const nj=await nr.json();const items=(nj.items||[]).slice(0,12);
    const st=items[Math.floor(Math.random()*items.length)]||{t:"Persib Bandung hari ini",src:"BANDUNG BIRU AI"};
@@ -72,7 +98,6 @@ async function runAgent(env,base){
  return made;
 }
 
-/* ===== helper publish untuk tugas baru ===== */
 async function publishFmt(env,conn,fmt,cap,imgPrompt,tag,videos){
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
  if(fmt==="post"){
@@ -99,7 +124,6 @@ async function publishFmt(env,conn,fmt,cap,imgPrompt,tag,videos){
  }
 }
 
-/* ===== TUGAS BARU 1: CAMPAIGN RUNNER (12:00 WIB) ===== */
 const PHASES=[
  {n:"Teaser",fok:"Hitung mundur & rivalitas",fmt:"reels"},
  {n:"Teaser",fok:"Hitung mundur & rivalitas",fmt:"carousel"},
@@ -116,7 +140,7 @@ const PHASES=[
  {n:"Live",fok:"Suasana stadion & skor",fmt:"story"},
  {n:"Refleksi",fok:"Reaksi hasil & evaluasi",fmt:"carousel"}
 ];
-async function runCampaign(env,base){
+async function runCampaign(env,base,force){
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
  if((env.AGENT_ON||"on")==="off")return 0;
  const conn=await getConn(U,K,"instagram");
@@ -124,7 +148,7 @@ async function runCampaign(env,base){
  const nowW=new Date(Date.now()+7*3600e3);
  const dateKey=nowW.toISOString().slice(0,10);
  const hhmm=nowW.toISOString().slice(11,16);
- if(hhmm<"12:00")return 0;
+ if(!force&&hhmm<"12:00")return 0;
  const tag="agent-c-"+dateKey;
  try{const r=await fetch(U+"/rest/v1/posts?result=eq."+tag+"&select=result",{headers:H(K)});if((await r.json()).length)return 0}catch(e){}
  const start=env.AGENT_CAMPAIGN_START||"2026-09-01";
@@ -146,8 +170,7 @@ async function runCampaign(env,base){
  }
 }
 
-/* ===== TUGAS BARU 2: ANALYSIS RUNNER (15:00 WIB) — konten original dari analisa berita ===== */
-async function runAnalysis(env,base){
+async function runAnalysis(env,base,force){
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
  if((env.AGENT_ON||"on")==="off")return 0;
  const conn=await getConn(U,K,"instagram");
@@ -155,7 +178,7 @@ async function runAnalysis(env,base){
  const nowW=new Date(Date.now()+7*3600e3);
  const dateKey=nowW.toISOString().slice(0,10);
  const hhmm=nowW.toISOString().slice(11,16);
- if(hhmm<"15:00")return 0;
+ if(!force&&hhmm<"15:00")return 0;
  const tag="agent-a-"+dateKey;
  try{const r=await fetch(U+"/rest/v1/posts?result=eq."+tag+"&select=result",{headers:H(K)});if((await r.json()).length)return 0}catch(e){}
  try{
@@ -173,11 +196,11 @@ async function runAnalysis(env,base){
  }
 }
 
-/* ===== HANDLER: due-publish + 3 tugas agent ===== */
 export default async function handler(req,res){
  const env=process.env;
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
  const base="https://"+(env.VERCEL_PROJECT_PRODUCTION_DOMAIN||"persib-media.vercel.app");
+ const force=req.query.force==="1";
  const results=[];
  try{
   const Hh=H(K);
@@ -190,8 +213,8 @@ export default async function handler(req,res){
   }
  }catch(e){}
  let agent=0,camp=0,anal=0;
- try{agent=await runAgent(env,base)}catch(e){}
- try{camp=await runCampaign(env,base)}catch(e){}
- try{anal=await runAnalysis(env,base)}catch(e){}
+ try{agent=await runAgent(env,base,force)}catch(e){}
+ try{camp=await runCampaign(env,base,force)}catch(e){}
+ try{anal=await runAnalysis(env,base,force)}catch(e){}
  res.status(200).json({processed:results.length,results,agent,campaign:camp,analysis:anal});
 }
