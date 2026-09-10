@@ -637,19 +637,49 @@ async function genVideo(){const d=$("#vsDur .on").dataset.d;$("#vsOut").innerHTM
   logEvent("content_gen",{fmt:"video"});
   window._vsPrompt="Football cinematic short video, "+$("#vsTopic").value+", vertical 9:16, stadium atmosphere, blue floodlights, energetic crowd, realistic, no text";
   $("#vsOut").innerHTML='<div class="card pad"><span class="chip ok">LLM REAL</span><div style="white-space:pre-wrap" class="sm">'+esc(t)+'</div><div class="row" style="margin-top:10px"><button class="btn pri sm" data-action="vsRender">🎬 Render Video (Seedance)</button></div><div id="vsVideo" style="margin-top:10px"></div></div>'}catch(e){$("#vsOut").innerHTML='<div class="warnnote">LLM tidak terjangkau.</div>'}}
-document.addEventListener("click",async e=>{if(e.target.closest('[data-action="vsRender"]')){const box=$("#vsVideo");if(!box)return;box.innerHTML='<div class="skel"></div><div class="sm mut">Membuat task Seedance…</div>';
+document.addEventListener("click",async e=>{if(e.target.closest('[data-action="vsRender"]')){const box=$("#vsVideo");if(!box)return;box.innerHTML='<div class="sm mut">⏳ Mencoba Seedance…</div>';
+ let serverDone=null;
  try{
   const c=await(await fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:window._vsPrompt||"football cinematic video"})})).json();
-  if(c.error){box.innerHTML='<div class="warnnote">🎬 Seedance: '+esc(c.error)+'</div>';return}
-  let done=null;
-  for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,5000));
-   const st=await(await fetch("/api/video?task="+encodeURIComponent(c.id))).json();
-   if(st.url){done=st.url;break}
-   if(st.error){box.innerHTML='<div class="warnnote">🎬 '+esc(st.error)+'</div>';return}
-   box.innerHTML='<div class="sm mut">⏳ Seedance rendering… ±'+((i+1)*5)+' dtk</div>'}
-  if(done){window._lastVideo=done;box.innerHTML='<video controls src="'+done+'" style="width:100%;border-radius:12px"></video><div class="row" style="margin-top:8px"><button class="btn pri sm" data-action="vsSched">📮 Jadwalkan ke TikTok</button></div>'}
-  else box.innerHTML='<div class="warnnote">⏳ Rendering lama — coba lagi sebentar lagi.</div>';
- }catch(err){box.innerHTML='<div class="warnnote">❌ '+esc(String(err.message||err))+'</div>'}}});
+  if(c.url)serverDone=c.url;
+  else if(c.id){for(let i=0;i<24;i++){await new Promise(r=>setTimeout(r,5000));const st=await(await fetch("/api/video?task="+encodeURIComponent(c.id))).json();if(st.url){serverDone=st.url;break}if(st.error)break;box.innerHTML='<div class="sm mut">⏳ Seedance rendering… ±'+((i+1)*5)+' dtk</div>'}}
+ }catch(err){}
+ if(serverDone){window._lastVideo=serverDone;box.innerHTML='<video controls src="'+serverDone+'" style="width:100%;border-radius:12px"></video><div class="row" style="margin-top:8px"><span class="chip ok">🎬 SEEDANCE</span><button class="btn pri sm" data-action="vsSched">📮 Jadwalkan ke TikTok/Reels</button></div>';return}
+ box.innerHTML='<div class="sm mut">🎬 Seedance tidak aktif — render otomatis lokal (gratis)…</div>';
+ try{
+  try{await document.fonts.load('64px "Anton"')}catch(e){}
+  const imgs=[];
+  if(window._lastImg&&/^https?:/.test(window._lastImg))imgs.push(window._lastImg);
+  for(const p of ["Persib Bandung stadium night flare crowd cinematic","Persib player blue jersey action close-up cinematic","Bobotoh supporters chanting wall blue cinematic","Football coach sideline tactical cinematic"]){if(imgs.length>=4)break;try{const nb=await nanoBanana(p+", photorealistic, no text, no logos","vs-"+Date.now()+"-"+imgs.length+".png");imgs.push(nb.url)}catch(e){}}
+  const loaded=[];for(const u of imgs){try{loaded.push(await loadImg(u))}catch(e){}}
+  if(loaded.length<2)throw new Error("gambar scene kurang");
+  const W=720,Hh=1280,cv=document.createElement("canvas");cv.width=W;cv.height=Hh;const cx=cv.getContext("2d");
+  const mime=(window.MediaRecorder&&MediaRecorder.isTypeSupported('video/mp4;codecs=avc1'))?'video/mp4;codecs=avc1':((window.MediaRecorder&&MediaRecorder.isTypeSupported('video/mp4'))?'video/mp4':'video/webm');
+  const rec=new MediaRecorder(cv.captureStream(30),{mimeType:mime,videoBitsPerSecond:5000000});
+  const chunks=[];rec.ondataavailable=ev=>{if(ev.data&&ev.data.size)chunks.push(ev.data)};
+  const stopped=new Promise(ok=>{rec.onstop=ok});
+  const texts=["BLUE IS THE ONLY WAY","PERSIB BANDUNG","BOBOTOH PRIDE","#PERSIB"];
+  const per=3000,total=per*loaded.length,t0=performance.now();
+  rec.start();
+  await new Promise(resolve=>{(function frame(){const el=performance.now()-t0;
+   if(el>=total){resolve();return}
+   const idx=Math.min(loaded.length-1,Math.floor(el/per));const pr=(el%per)/per;const img=loaded[idx];
+   const z=1+0.12*pr;const s=Math.max(W/img.width,Hh/img.height)*z;const dw=img.width*s,dh=img.height*s;
+   cx.drawImage(img,(W-dw)/2,(Hh-dh)/2-20*pr,dw,dh);
+   cx.fillStyle="rgba(8,18,38,.35)";cx.fillRect(0,Hh*0.72,W,Hh*0.28);
+   cx.fillStyle="#FFD400";cx.fillRect(W*0.08,Hh*0.74,W*0.2,6);
+   cx.fillStyle="#fff";cx.font='64px "Anton", Impact, sans-serif';cx.textBaseline="top";
+   cx.fillText(texts[idx%texts.length],W*0.08,Hh*0.77);
+   requestAnimationFrame(frame)})()});
+  rec.stop();await stopped;
+  const blob=new Blob(chunks,{type:mime});
+  let url="";
+  if(sbOn){try{const nm="reel-"+Date.now()+".mp4";const up=await fetch(SB.url+"/storage/v1/object/media/"+nm,{method:"POST",headers:{apikey:SB.key,Authorization:"Bearer "+SB.key,"Content-Type":mime},body:blob});if(up.ok)url=SB.url+"/storage/v1/object/public/media/"+nm}catch(e){}}
+  const local=URL.createObjectURL(blob);
+  window._lastVideo=url||local;
+  box.innerHTML='<video controls src="'+local+'" style="width:100%;border-radius:12px"></video><div class="row" style="margin-top:8px"><span class="chip ok">🎬 AUTO-RENDER GRATIS</span>'+(url?'<span class="chip ok">tersimpan di Supabase</span>':'<span class="chip warn">preview lokal</span>')+'<button class="btn pri sm" data-action="vsSched">📮 Jadwalkan ke TikTok/Reels</button></div>';
+ }catch(err){box.innerHTML='<div class="warnnote">❌ '+esc(String(err.message||err))+'</div>'}
+}});
 document.addEventListener("click",async e=>{if(e.target.closest('[data-action="vsSched"]')){if(window._lastVideo){await store.add("posts",{platform:"tiktok",content:$("#vsTopic").value+" #Persib #Bobotoh",video_url:window._lastVideo,scheduled_at:new Date(Date.now()+3600e3).toISOString(),status:"approval"});await loadDB();rScheduler();toast("📮 Video masuk queue TikTok → approve untuk publish.","ok")}}});
 async function genCampaign(){$("#cpOut").innerHTML='<div class="skel"></div>';
  try{const t=await providers.llm("Strategi kampanye media Persib independen: "+$("#cpName").value+", tujuan "+$("#cpGoal").value+", audience "+$("#cpAud").value+", budget Rp "+$("#cpBudget").value+", "+$("#cpDur").value+". 3 pillars, jadwal, 3 hook, CTA, KPI = ESTIMATED RANGE (bukan jaminan), testing plan A/B. Indonesia, singkat.");
