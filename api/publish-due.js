@@ -1,5 +1,6 @@
 const H=K=>({apikey:K,Authorization:"Bearer "+K,"Content-Type":"application/json",Prefer:"return=representation"});
 const G="https://graph.facebook.com/v21.0";
+const DIAG=[];
 async function graph(path,body){const r=await fetch(G+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json();if(j.error)throw new Error(j.error.message);return j}
 async function getConn(U,K,p){const r=await(await fetch(U+"/rest/v1/connections?id=eq."+p,{headers:H(K)})).json();return (r||[])[0]}
 function b64(buf){return Buffer.from(buf).toString("base64")}
@@ -33,95 +34,74 @@ async function getImage(prompt,env,name){
  for(const q of ["football,stadium","soccer"]){const u="https://loremflickr.com/1024/1024/"+q;const dd=await asDataUrl(u);if(dd){const su=await storeImage(dd,env,name);if(su)return su;return u}}
  return "";
 }
+/* --- PAKET 6: notifikasi Telegram --- */
+async function notifyTG(env,text){if(!env.TELEGRAM_BOT_TOKEN||!env.TELEGRAM_CHAT_ID||(env.AGENT_NOTIFY||"")!=="1")return;try{await fetch("https://api.telegram.org/bot"+env.TELEGRAM_BOT_TOKEN+"/sendMessage",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:env.TELEGRAM_CHAT_ID,text})})}catch(e){}}
+/* --- PAKET 3: dedupe topik 48 jam --- */
+const tokensLite=t=>(String(t||"").toLowerCase().match(/[a-z]{5,}/g)||[]);
+async function recentSet(env){const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;const since=new Date(Date.now()-48*3600e3).toISOString();try{const r=await fetch(U+"/rest/v1/posts?status=eq.published&created_at=gte."+since+"&select=content&limit=60",{headers:H(K)});const rows=await r.json();const s=new Set();(rows||[]).forEach(p=>tokensLite(p.content).forEach(w=>s.add(w)));return s}catch(e){return new Set()}}
+function pickFresh(items,set){if(!set||!set.size)return items;const fresh=items.filter(it=>{const tk=tokensLite(it.t);if(!tk.length)return true;const ov=tk.filter(w=>set.has(w)).length/tk.length;return ov<0.35});return fresh.length?fresh:items}
+/* --- PAKET 3: prompt slide carousel berbeda-beda --- */
+const slidePrompts=b=>[b+", wide cinematic stadium atmosphere",b+", close-up player emotion and jersey texture",b+", supporters terrace with flags and flare smoke"];
+/* --- PAKET 3+4: publish helper (preview mode + story jujur) --- */
+async function publishIG(env,conn,fmt,cap,imgs,videos,tag){
+ const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
+ const PREVIEW=(env.AGENT_MODE||"")==="preview";
+ const saveRow=(status,extra)=>fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify(Object.assign({platform:"instagram",content:cap,scheduled_at:new Date().toISOString(),status:result:tag},extra||{}))});
+ if(fmt==="story"){const img=imgs[0]||"";await saveRow("approval",{image_url:img});return}
+ if(PREVIEW){await saveRow("approval",{image_url:imgs[0]||""});return}
+ if(fmt==="reels"&&videos.length){const v=videos[Math.floor(Math.random()*videos.length)];const c=await graph("/"+conn.account_id+"/media",{media_type:"VIDEO",video_url:v,caption:cap.slice(0,2000),access_token:conn.access_token});await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});await saveRow("published",{video_url:v});return}
+ if(fmt==="carousel"&&imgs.length>=2){const kids=[];for(const u of imgs){const ci=await graph("/"+conn.account_id+"/media",{image_url:u,is_carousel_item:true,access_token:conn.access_token});kids.push(ci.id)}const c=await graph("/"+conn.account_id+"/media",{media_type:"CAROUSEL",children:kids,caption:cap.slice(0,2000),access_token:conn.access_token});await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});await saveRow("published",{image_url:imgs[0]});return}
+ const img=imgs[0];if(!img)throw new Error("no image");
+ const c=await graph("/"+conn.account_id+"/media",{image_url:img,caption:cap.slice(0,2000),access_token:conn.access_token});
+ await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});
+ await saveRow("published",{image_url:img});
+}
 
-/* ===== TUGAS LAMA (TIDAK BERUBAH): 5 slot/hari dari RSS ===== */
 async function runAgent(env,base,force){
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
- if((env.AGENT_ON||"on")==="off")return 0;
+ if((env.AGENT_ON||"on")==="off"){DIAG.push("agent: AGENT_ON=off");return 0}
  const conn=await getConn(U,K,"instagram");
- if(!conn||!conn.account_id||!conn.access_token)return 0;
+ if(!conn||!conn.account_id||!conn.access_token){DIAG.push("agent: koneksi IG tidak ada");return 0}
+ DIAG.push("agent: conn OK");
  const nowW=new Date(Date.now()+7*3600e3);
  const dateKey=nowW.toISOString().slice(0,10);
  const hhmm=nowW.toISOString().slice(11,16);
  const slots=["07:00","10:30","13:00","17:30","20:00"];
  const seed=parseInt(dateKey.replace(/-/g,""),10);
  const done={};
- try{const r=await fetch(U+"/rest/v1/posts?result=like.agent-"+dateKey+"-*&select=result",{headers:H(K)});(await r.json()).forEach(x=>{done[x.result]=1})}catch(e){}
- let made=0;
+ try{const r=await fetch(U+"/rest/v1/posts?result=like.agent-"+dateKey+"-*&status=neq.failed&select=result",{headers:H(K)});(await r.json()).forEach(x=>{done[x.result]=1})}catch(e){}
+ const set=await recentSet(env);
+ const videos=(env.AGENT_VIDEO_URLS||"").split(",").map(s=>s.trim()).filter(Boolean);
+ const keys=(env.GEMINI_KEY||"").split(",").map(s=>s.trim()).filter(Boolean);
+ let made=0;const fails=[];
  for(let i=0;i<slots.length;i++){
   const jitter=((seed>>(i*3))%21)-10;
   const [sh,sm]=slots[i].split(":").map(Number);
   const tot=sh*60+sm+jitter;
   const slotStr=String(Math.floor(tot/60)).padStart(2,"0")+":"+String(((tot%60)+60)%60).padStart(2,"0");
   const tag="agent-"+dateKey+"-"+i;
-  if(done[tag])continue;
+  if(done[tag]){DIAG.push("slot"+i+": sudah terposting");continue}
   if(!force&&hhmm<slotStr)continue;
   try{
-   const nr=await fetch(base+"/api/news");const nj=await nr.json();const items=(nj.items||[]).slice(0,12);
+   const nr=await fetch(base+"/api/news");const nj=await nr.json();let items=(nj.items||[]).slice(0,12);
+   items=pickFresh(items,set);
    const st=items[Math.floor(Math.random()*items.length)]||{t:"Persib Bandung hari ini",src:"BANDUNG BIRU AI"};
-   const videos=(env.AGENT_VIDEO_URLS||"").split(",").map(s=>s.trim()).filter(Boolean);
    let fmt=["post","carousel","story","reels"][Math.floor(Math.random()*4)];
    if(fmt==="reels"&&!videos.length)fmt="carousel";
-   const keys=(env.GEMINI_KEY||"").split(",").map(s=>s.trim()).filter(Boolean);
    const cap=await geminiText("Kamu admin media fan Persib. Buat caption Instagram "+(fmt==="carousel"?"untuk carousel 3 slide":fmt==="story"?"untuk story":"untuk single post")+" bahasa Indonesia, semangat bobotoh, maks 3 kalimat + 5 hashtag. Topik: "+st.t,keys)||("Persib! 🔵 "+st.t+" #Persib #Bobotoh");
-   const imgPrompt="Photorealistic editorial football photo, "+String(st.t).slice(0,100)+", blue stadium atmosphere, no text, no logos";
-   if(fmt==="post"){
-    const img=await getImage(imgPrompt,env,"ag-"+Date.now()+".png");
-    if(!img)throw new Error("no image");
-    const c=await graph("/"+conn.account_id+"/media",{image_url:img,caption:cap.slice(0,2000),access_token:conn.access_token});
-    await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});
-    await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:cap,image_url:img,scheduled_at:new Date().toISOString(),status:"published",result:tag})});
-    made++;
-   }else if(fmt==="carousel"){
-    const imgs=[];for(let k=0;k<3;k++){const u=await getImage(imgPrompt+", variation "+k,env,"agc-"+Date.now()+"-"+k+".png");if(u)imgs.push(u)}
-    if(imgs.length<2)throw new Error("carousel images kurang");
-    const kids=[];for(const u of imgs){const ci=await graph("/"+conn.account_id+"/media",{image_url:u,is_carousel_item:true,access_token:conn.access_token});kids.push(ci.id)}
-    const c=await graph("/"+conn.account_id+"/media",{media_type:"CAROUSEL",children:kids,caption:cap.slice(0,2000),access_token:conn.access_token});
-    await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});
-    await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:cap,image_url:imgs[0],scheduled_at:new Date().toISOString(),status:"published",result:tag})});
-    made++;
-   }else if(fmt==="reels"){
-    const v=videos[Math.floor(Math.random()*videos.length)];
-    const c=await graph("/"+conn.account_id+"/media",{media_type:"VIDEO",video_url:v,caption:cap.slice(0,2000),access_token:conn.access_token});
-    await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});
-    await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:cap,video_url:v,scheduled_at:new Date().toISOString(),status:"published",result:tag})});
-    made++;
-   }else{
-    const img=await getImage(imgPrompt,env,"ags-"+Date.now()+".png");
-    await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:"[STORY — publish manual via app] "+cap,image_url:img||"",scheduled_at:new Date().toISOString(),status:"approval",result:tag})});
-    made++;
-   }
+   const basePrompt="Photorealistic editorial football photo, "+String(st.t).slice(0,100)+", blue stadium atmosphere, no text, no logos";
+   let imgs=[];
+   if(fmt==="carousel"){for(let k=0;k<3;k++){const u=await getImage(slidePrompts(basePrompt)[k],env,"agc-"+Date.now()+"-"+k+".png");if(u)imgs.push(u)}}
+   else{const u=await getImage(basePrompt,env,"ag-"+Date.now()+".png");if(u)imgs=[u]}
+   await publishIG(env,conn,fmt,cap,imgs,videos,tag);
+   DIAG.push("slot"+i+": OK "+fmt);made++;
   }catch(e){
+   DIAG.push("slot"+i+" GAGAL: "+String(e.message||e).slice(0,140));fails.push("slot"+i+": "+String(e.message||e).slice(0,80));
    try{await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:"agent gagal: "+String(e.message||e).slice(0,150),scheduled_at:new Date().toISOString(),status:"failed",result:tag})})}catch(e2){}
   }
  }
+ if(fails.length)await notifyTG(env,"⚠️ BANDUNG BIRU AI — agent gagal: "+fails.join(" | ").slice(0,400));
  return made;
-}
-
-async function publishFmt(env,conn,fmt,cap,imgPrompt,tag,videos){
- const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
- if(fmt==="post"){
-  const img=await getImage(imgPrompt,env,"agx-"+Date.now()+".png");
-  if(!img)throw new Error("no image");
-  const c=await graph("/"+conn.account_id+"/media",{image_url:img,caption:cap.slice(0,2000),access_token:conn.access_token});
-  await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});
-  await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:cap,image_url:img,scheduled_at:new Date().toISOString(),status:"published",result:tag})});
- }else if(fmt==="carousel"){
-  const imgs=[];for(let k=0;k<3;k++){const u=await getImage(imgPrompt+", variation "+k,env,"agx-c-"+Date.now()+"-"+k+".png");if(u)imgs.push(u)}
-  if(imgs.length<2)throw new Error("carousel images kurang");
-  const kids=[];for(const u of imgs){const ci=await graph("/"+conn.account_id+"/media",{image_url:u,is_carousel_item:true,access_token:conn.access_token});kids.push(ci.id)}
-  const c=await graph("/"+conn.account_id+"/media",{media_type:"CAROUSEL",children:kids,caption:cap.slice(0,2000),access_token:conn.access_token});
-  await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});
-  await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:cap,image_url:imgs[0],scheduled_at:new Date().toISOString(),status:"published",result:tag})});
- }else if(fmt==="reels"){
-  const v=videos[Math.floor(Math.random()*videos.length)];
-  const c=await graph("/"+conn.account_id+"/media",{media_type:"VIDEO",video_url:v,caption:cap.slice(0,2000),access_token:conn.access_token});
-  await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token});
-  await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:cap,video_url:v,scheduled_at:new Date().toISOString(),status:"published",result:tag})});
- }else{
-  const img=await getImage(imgPrompt,env,"agx-s-"+Date.now()+".png");
-  await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:"[STORY — publish manual via app] "+cap,image_url:img||"",scheduled_at:new Date().toISOString(),status:"approval",result:tag})});
- }
 }
 
 const PHASES=[
@@ -144,27 +124,33 @@ async function runCampaign(env,base,force){
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
  if((env.AGENT_ON||"on")==="off")return 0;
  const conn=await getConn(U,K,"instagram");
- if(!conn||!conn.account_id||!conn.access_token)return 0;
+ if(!conn||!conn.account_id||!conn.access_token){DIAG.push("campaign: koneksi IG tidak ada");return 0}
  const nowW=new Date(Date.now()+7*3600e3);
  const dateKey=nowW.toISOString().slice(0,10);
  const hhmm=nowW.toISOString().slice(11,16);
  if(!force&&hhmm<"12:00")return 0;
  const tag="agent-c-"+dateKey;
- try{const r=await fetch(U+"/rest/v1/posts?result=eq."+tag+"&select=result",{headers:H(K)});if((await r.json()).length)return 0}catch(e){}
+ try{const r=await fetch(U+"/rest/v1/posts?result=eq."+tag+"&status=neq.failed&select=result",{headers:H(K)});if((await r.json()).length){DIAG.push("campaign: sudah terposting");return 0}}catch(e){}
  const start=env.AGENT_CAMPAIGN_START||"2026-09-01";
  const dayIdx=Math.floor((Date.parse(dateKey)-Date.parse(start))/86400000);
  const ph=PHASES[((dayIdx%14)+14)%14];
  const videos=(env.AGENT_VIDEO_URLS||"").split(",").map(s=>s.trim()).filter(Boolean);
  let fmt=ph.fmt;if(fmt==="reels"&&!videos.length)fmt="carousel";
  try{
-  const nr=await fetch(base+"/api/news");const nj=await nr.json();const items=(nj.items||[]).slice(0,6);
+  const nr=await fetch(base+"/api/news");const nj=await nr.json();let items=pickFresh((nj.items||[]).slice(0,6),await recentSet(env));
   const ctxT=items.map(x=>x.t).join(" | ");
   const keys=(env.GEMINI_KEY||"").split(",").map(s=>s.trim()).filter(Boolean);
   const cap=await geminiText("Kampanye 'Road to Matchday — Seri Kandang' media fan Persib. Fase hari ini: "+ph.n+" — fokus: "+ph.fok+". Pilar: 1) Hype & Analisis 2) Budaya & Relate Bobotoh 3) Info Praktis Matchday. Berita terkini: "+ctxT+" . Buat caption "+fmt+" bahasa Indonesia maks 3 kalimat + 4 hashtag, original, jangan klaim fakta baru.",keys)||("Road to Matchday! 🔵 "+ph.fok+" #Persib #Bobotoh");
-  const imgPrompt="Photorealistic football matchday atmosphere Bandung, "+ph.fok+", blue flares and crowd, no text, no logos";
-  await publishFmt(env,conn,fmt,cap,imgPrompt,tag,videos);
+  const basePrompt="Photorealistic football matchday atmosphere Bandung, "+ph.fok+", blue flares and crowd, no text, no logos";
+  let imgs=[];
+  if(fmt==="carousel"){for(let k=0;k<3;k++){const u=await getImage(slidePrompts(basePrompt)[k],env,"agx-c-"+Date.now()+"-"+k+".png");if(u)imgs.push(u)}}
+  else{const u=await getImage(basePrompt,env,"agx-"+Date.now()+".png");if(u)imgs=[u]}
+  await publishIG(env,conn,fmt,cap,imgs,videos,tag);
+  DIAG.push("campaign: OK ("+ph.n+")");
   return 1;
  }catch(e){
+  DIAG.push("campaign GAGAL: "+String(e.message||e).slice(0,140));
+  await notifyTG(env,"⚠️ Campaign gagal: "+String(e.message||e).slice(0,200));
   try{await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:"campaign gagal: "+String(e.message||e).slice(0,150),scheduled_at:new Date().toISOString(),status:"failed",result:tag})})}catch(e2){}
   return 0;
  }
@@ -174,23 +160,26 @@ async function runAnalysis(env,base,force){
  const {SUPABASE_URL:U,SUPABASE_SERVICE_KEY:K}=env;
  if((env.AGENT_ON||"on")==="off")return 0;
  const conn=await getConn(U,K,"instagram");
- if(!conn||!conn.account_id||!conn.access_token)return 0;
+ if(!conn||!conn.account_id||!conn.access_token){DIAG.push("analysis: koneksi IG tidak ada");return 0}
  const nowW=new Date(Date.now()+7*3600e3);
  const dateKey=nowW.toISOString().slice(0,10);
  const hhmm=nowW.toISOString().slice(11,16);
  if(!force&&hhmm<"15:00")return 0;
  const tag="agent-a-"+dateKey;
- try{const r=await fetch(U+"/rest/v1/posts?result=eq."+tag+"&select=result",{headers:H(K)});if((await r.json()).length)return 0}catch(e){}
+ try{const r=await fetch(U+"/rest/v1/posts?result=eq."+tag+"&status=neq.failed&select=result",{headers:H(K)});if((await r.json()).length){DIAG.push("analysis: sudah terposting");return 0}}catch(e){}
  try{
-  const nr=await fetch(base+"/api/news");const nj=await nr.json();const items=(nj.items||[]).slice(0,6);
-  if(!items.length)return 0;
+  const nr=await fetch(base+"/api/news");const nj=await nr.json();let items=pickFresh((nj.items||[]).slice(0,6),await recentSet(env));
+  if(!items.length){DIAG.push("analysis: berita kosong");return 0}
   const ctxT=items.map(x=>x.t).join(" | ");
   const keys=(env.GEMINI_KEY||"").split(",").map(s=>s.trim()).filter(Boolean);
   const cap=await geminiText("Kamu analis media Persib. Dari kumpulan berita ini: "+ctxT+" — tulis SATU postingan analisis ORIGINAL bahasa Indonesia: temukan benang merah/pola, maks 4 kalimat + 3 hashtag. Tegaskan ini analisis independen, bukan fakta resmi.",keys)||("Analisa Biru 🔵 "+items[0].t+" #Persib #Bobotoh");
-  const imgPrompt="Photorealistic tactical football analysis mood, Persib Bandung training ground, coach thinking, blue tones, no text, no logos";
-  await publishFmt(env,conn,"post",cap,imgPrompt,tag,[]);
+  const u=await getImage("Photorealistic tactical football analysis mood, Persib Bandung training ground, coach thinking, blue tones, no text, no logos",env,"agx-a-"+Date.now()+".png");
+  await publishIG(env,conn,"post",cap,u?[u]:[],[],tag);
+  DIAG.push("analysis: OK");
   return 1;
  }catch(e){
+  DIAG.push("analysis GAGAL: "+String(e.message||e).slice(0,140));
+  await notifyTG(env,"⚠️ Analysis gagal: "+String(e.message||e).slice(0,200));
   try{await fetch(U+"/rest/v1/posts",{method:"POST",headers:H(K),body:JSON.stringify({platform:"instagram",content:"analisis gagal: "+String(e.message||e).slice(0,150),scheduled_at:new Date().toISOString(),status:"failed",result:tag})})}catch(e2){}
   return 0;
  }
@@ -210,11 +199,14 @@ export default async function handler(req,res){
    try{const r=await fetch(base+"/api/publish",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({platform:p.platform,message:p.content,imageUrl:p.image_url,videoUrl:p.video_url})});j=await r.json()}catch(e){j={ok:false,error:String(e.message||e)}}
    await fetch(U+"/rest/v1/posts?id=eq."+p.id,{method:"PATCH",headers:Hh,body:JSON.stringify(j.ok?{status:"published",result:"real"}:{status:"failed",result:(j.error||"").slice(0,100)})});
    results.push({platform:p.platform,ok:!!j.ok});
+   if(!j.ok)await notifyTG(env,"⚠️ Publish gagal ("+p.platform+"): "+String(j.error||"").slice(0,200));
   }
  }catch(e){}
  let agent=0,camp=0,anal=0;
- try{agent=await runAgent(env,base,force)}catch(e){}
- try{camp=await runCampaign(env,base,force)}catch(e){}
- try{anal=await runAnalysis(env,base,force)}catch(e){}
- res.status(200).json({processed:results.length,results,agent,campaign:camp,analysis:anal});
+ try{agent=await runAgent(env,base,force)}catch(e){DIAG.push("agent exception: "+String(e.message||e))}
+ try{camp=await runCampaign(env,base,force)}catch(e){DIAG.push("campaign exception: "+String(e.message||e))}
+ try{anal=await runAnalysis(env,base,force)}catch(e){DIAG.push("analysis exception: "+String(e.message||e))}
+ const out={processed:results.length,results,agent,campaign:camp,analysis:anal};
+ if(req.query.diag==="1")out.diag=DIAG;
+ res.status(200).json(out);
 }
