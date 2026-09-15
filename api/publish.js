@@ -34,19 +34,24 @@ async function publishTo({platform,message,imageUrl,videoUrl},env){
   const conn=await getConn(U,K,platform);
   if(!conn)return{ok:false,error:platform+" belum terhubung via OAuth"};
   if(platform==="facebook"){
-   if(imageUrl)return{ok:true,id:(await graph("/"+conn.account_id+"/photos",{url:imageUrl,caption:message,access_token:conn.access_token})).id};
+   if(imageUrl)return{ok:true,id:(await graph("/"+conn.account_id+"/photos",{url:String(imageUrl).split("|")[0],caption:message,access_token:conn.access_token})).id};
    return{ok:true,id:(await graph("/"+conn.account_id+"/feed",{message:message,access_token:conn.access_token})).id};
   }
   if(platform==="instagram"){
+   if(String(message).startsWith("[STORY"))return{ok:false,error:"Story tidak bisa via API Meta — publish manual di aplikasi Instagram."};
    if(!conn.account_id||!conn.access_token)return{ok:false,error:"Koneksi IG tidak lengkap — hubungkan ulang di Social Manager."};
-   let img=imageUrl||"";
-   if(!img){const d=await geminiImage("Photorealistic editorial sports photography, "+message.slice(0,120)+", natural stadium floodlights, no text, no logos",env);
-    if(d)img=await storeImage(d,env,"auto-"+Date.now()+".png");}
-   if(!img)return{ok:false,error:"Gambar tidak tersedia — lampirkan gambar lalu Retry."};
-   const c=await graph("/"+conn.account_id+"/media",{image_url:img,caption:message.slice(0,2000),access_token:conn.access_token});
-   let p;
-   try{p=await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token})}
-   catch(ep){await new Promise(r=>setTimeout(r,2500));p=await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token})}
+   let urls=String(imageUrl||"").split("|").filter(Boolean);
+   if(!urls.length){const d=await geminiImage("Photorealistic editorial sports photography, "+message.slice(0,120)+", natural stadium floodlights, no text, no logos",env);
+    if(d){const u=await storeImage(d,env,"auto-"+Date.now()+".png");if(u)urls=[u]}}
+   if(!urls.length)return{ok:false,error:"Gambar tidak tersedia — lampirkan gambar lalu Retry."};
+   if(urls.length>1){
+    const kids=[];for(const u of urls){const ci=await graph("/"+conn.account_id+"/media",{image_url:u,is_carousel_item:true,access_token:conn.access_token});kids.push(ci.id)}
+    const c=await graph("/"+conn.account_id+"/media",{media_type:"CAROUSEL",children:kids,caption:message.slice(0,2000),access_token:conn.access_token});
+    let p;try{p=await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token})}catch(ep){await new Promise(r=>setTimeout(r,2500));p=await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token})}
+    return{ok:true,id:p.id};
+   }
+   const c=await graph("/"+conn.account_id+"/media",{image_url:urls[0],caption:message.slice(0,2000),access_token:conn.access_token});
+   let p;try{p=await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token})}catch(ep){await new Promise(r=>setTimeout(r,2500));p=await graph("/"+conn.account_id+"/media_publish",{creation_id:c.id,access_token:conn.access_token})}
    return{ok:true,id:p.id};
   }
   if(platform==="tiktok"){
