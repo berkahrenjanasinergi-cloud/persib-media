@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
-BANDUNG BIRU AI — index.html FINAL (v15)
-Struktur lama DIPULIHKAN penuh (14 menu). Tambahan: pemilih sumber gambar di Content Studio + caption-only untuk IG.
+BANDUNG BIRU AI — index.html FINAL (v16)
+v15 + Paket 4&5: cache gambar 24 jam, carousel nyata (3 gambar) saat Approve, guard story (publish manual), simpan image_url ke record post.
 -->
 <html lang="id"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -297,10 +297,13 @@ async function publishReal(platform,text){
 }
 async function serverPublish(p){return await(await fetch("/api/publish",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({platform:p.platform,message:p.content,imageUrl:p.image_url,videoUrl:p.video_url})})).json()}
 async function loadConns(){try{const r=await fetch("/api/connections");if(r.ok){const j=await r.json();CONN={};(j.connections||[]).forEach(c=>CONN[c.platform]=c.account_name);API_OK=true;return}}catch(e){}API_OK=false}
-async function nanoBanana(prompt,name){const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();
- if(j.dataUrl&&sbOn){try{const blob=await (await fetch(j.dataUrl)).blob();const up=await fetch(SB.url+"/storage/v1/object/media/"+name,{method:"POST",headers:{apikey:SB.key,Authorization:"Bearer "+SB.key,"Content-Type":"image/png"},body:blob});if(up.ok)return{url:SB.url+"/storage/v1/object/public/media/"+name,credit:j.credit||"AI: NANO BANANA"}}catch(e){}}
- if(j.dataUrl)return{url:j.dataUrl,credit:j.credit||"AI: NANO BANANA"};
- if(j.url)return{url:j.url,credit:j.credit||"📷 WIKIMEDIA COMMONS (CC)"};
+/* PAKET 5: cache gambar 24 jam per prompt */
+function imgCacheGet(p){try{const c=JSON.parse(localStorage.getItem("bb_imgcache")||"{}");const e=c[p];if(e&&Date.now()-e.ts<864e5)return e}catch(e){}return null}
+function imgCacheSet(p,url,credit){try{const c=JSON.parse(localStorage.getItem("bb_imgcache")||"{}");c[p]={url:url,credit:credit,ts:Date.now()};const ks=Object.keys(c);if(ks.length>60)delete c[ks[0]];localStorage.setItem("bb_imgcache",JSON.stringify(c))}catch(e){}}
+async function nanoBanana(prompt,name){const ce=imgCacheGet(prompt);if(ce)return{url:ce.url,credit:ce.credit};const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});const j=await r.json();
+ if(j.dataUrl&&sbOn){try{const blob=await (await fetch(j.dataUrl)).blob();const up=await fetch(SB.url+"/storage/v1/object/media/"+name,{method:"POST",headers:{apikey:SB.key,Authorization:"Bearer "+SB.key,"Content-Type":"image/png"},body:blob});if(up.ok){const uu=SB.url+"/storage/v1/object/public/media/"+name;imgCacheSet(prompt,uu,j.credit||"AI: NANO BANANA");return{url:uu,credit:j.credit||"AI: NANO BANANA"}}}catch(e){}}
+ if(j.dataUrl){imgCacheSet(prompt,j.dataUrl,j.credit||"AI: NANO BANANA");return{url:j.dataUrl,credit:j.credit||"AI: NANO BANANA"}}
+ if(j.url){imgCacheSet(prompt,j.url,j.credit||"📷 WIKIMEDIA COMMONS (CC)");return{url:j.url,credit:j.credit||"📷 WIKIMEDIA COMMONS (CC)"}}
  throw new Error(j.error||"gambar gagal")}
 async function commonsImage(q){
  const stop=/foto|photo|realistic|lens|text|logos|watermark|floodlights|candid|atmosphere|textures|depth|field|premium|newsroom|editorial|sports|photography|natural|shot|mm|no|tanpa|dengan|untuk|yang|dan|dari|pada/i;
@@ -539,13 +542,15 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
   const pl=(platSel.value||"instagram").toLowerCase();const txt=(outEl.innerText||"").slice(0,800);
   if(API_OK&&["instagram","facebook","tiktok","telegram","discord"].includes(pl)){
    const capTxt=window._csCap||txt;
-   const imgUrl=(window._csMediaType==="image"&&window._csMedia)?window._csMedia:(window._csImg||"");
+   let imgUrl=(window._csMediaType==="image"&&window._csMedia)?window._csMedia:(window._csImg||"");
    const vidUrl=(window._csMediaType==="video"&&window._csMedia)?window._csMedia:"";
+   const fmtNow=($("#csFmt .on")||{}).dataset?($("#csFmt .on").dataset.f||""):"";
+   if(fmtNow==="carousel"&&imgUrl&&/^https?:/.test(imgUrl)){try{const extra=[];for(let k=1;k<3;k++){const nb=await nanoBanana("Photorealistic editorial sports photography, slide "+(k+1)+" angle variation: "+(k===1?"close-up player emotion and jersey detail":"supporters terrace and flare atmosphere")+", no text, no logos","csl-"+Date.now()+"-"+k+".png");if(nb.url)extra.push(nb.url)}if(extra.length)imgUrl=[imgUrl].concat(extra).join("|")}catch(e){}}
    const p0=await store.add("posts",{platform:pl,content:capTxt.slice(0,2000),scheduled_at:new Date().toISOString(),status:"scheduled",result:"approve-now"});
    if(pl==="instagram"&&!imgUrl){await store.patch("posts",p0.id,{status:"failed",result:"gambar belum siap"});toast("⚠️ Gambar belum siap (lampirkan foto atau buat poster di Image Studio).","warn")}
    else{
     const j=await serverPublish({platform:pl,content:capTxt.slice(0,2000),image_url:imgUrl||undefined,video_url:vidUrl||undefined});
-    if(j.ok){await store.patch("posts",p0.id,{status:"published",result:"real"});logEvent("publish_ok",{platform:pl});toast("✅ Approved & PUBLISHED REAL ke "+pl+" — sama persis dengan preview!","ok")}
+    if(j.ok){await store.patch("posts",p0.id,{status:"published",result:"real",image_url:imgUrl.split("|")[0]});logEvent("publish_ok",{platform:pl});toast("✅ Approved & PUBLISHED REAL ke "+pl+" — sama persis dengan preview!","ok")}
     else{await store.patch("posts",p0.id,{status:"failed",result:(j.error||"").slice(0,100)});logEvent("publish_fail",{platform:pl});toast("❌ "+(j.error||"gagal"),"bad")}
    }
   }else{
@@ -583,6 +588,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-act
  if(a==="rule"){state.rules[el.dataset.k]=!state.rules[el.dataset.k];save();rScheduler()}
  if(a==="approve"){await store.patch("posts",el.dataset.id,{status:"scheduled"});await loadDB();rScheduler();rOverview();toast("✔ Disetujui → scheduled.","ok")}
  if(a==="publish"){const p=posts.find(x=>x.id==el.dataset.id);
+  if((p.content||"").startsWith("[STORY")){toast("📱 Story: publish manual via aplikasi Instagram (API Meta tidak mendukung story).","warn");window.open("https://www.instagram.com/","_blank");return}
   if(API_OK){const j=await serverPublish(p);
    if(j.ok){await store.patch("posts",p.id,{status:"published",result:"real"});logEvent("publish_ok",{platform:p.platform});toast("✅ Published REAL ke "+p.platform+".","ok")}
    else{await store.patch("posts",p.id,{status:"failed",result:(j.error||"").slice(0,100)});logEvent("publish_fail",{platform:p.platform});toast("❌ "+esc(j.error||"gagal"),"bad")}}
